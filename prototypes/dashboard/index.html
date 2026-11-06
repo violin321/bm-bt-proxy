@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BM-BT · 运行概览方案</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="picker.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <script defer src="dashboard.js"></script>
+  <script defer src="preview.js"></script>
+</head>
+<body>
+  <div class="preview-notice">仪表盘方案 <span>统计、状态均为样例 · 不请求真实源站</span><label class="density-label">源数量预览 <select id="density" aria-label="源数量预览"><option value="2">2 个源</option><option value="10">10 个源</option></select></label></div>
+  <main id="stage"></main>
+  <nav class="proto-picker" aria-label="Prototype variants">
+    <span class="proto-picker-highlight" aria-hidden="true"></span>
+    <button class="proto-picker-item" data-active aria-current="true">素白</button>
+    <button class="proto-picker-item">深色</button>
+    <button class="proto-picker-item">混合</button>
+  </nav>
+  <dialog id="editor" aria-labelledby="editorTitle"></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>

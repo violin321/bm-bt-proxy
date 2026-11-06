@@ -1,0 +1,246 @@
+{
+  "tested_at_utc": "2026-11-06T16:15:15.162984+00:00",
+  "cases": [
+    {
+      "query": "SSIS-586",
+      "success": true,
+      "count": 8,
+      "signature": "9ae05408a749bd4b",
+      "elapsed_ms": 6109,
+      "aggregate_requests": [
+        {
+          "id": 33,
+          "keyword": "SSIS-586",
+          "outcome": "complete",
+          "unique_count": 8,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "ssis586",
+      "success": true,
+      "count": 8,
+      "signature": "9ae05408a749bd4b",
+      "elapsed_ms": 4811,
+      "aggregate_requests": [
+        {
+          "id": 34,
+          "keyword": "SSIS-586",
+          "outcome": "complete",
+          "unique_count": 8,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": " SSIS-586 ",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 8158,
+      "aggregate_requests": [
+        {
+          "id": 35,
+          "keyword": " SSIS-586 ",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "SSIS 586",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 9030,
+      "aggregate_requests": [
+        {
+          "id": 36,
+          "keyword": "SSIS 586",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "IPX-451",
+      "success": true,
+      "count": 9,
+      "signature": "a51137cc178a2a44",
+      "elapsed_ms": 8949,
+      "aggregate_requests": [
+        {
+          "id": 37,
+          "keyword": "IPX-451",
+          "outcome": "complete",
+          "unique_count": 9,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "ipx451",
+      "success": true,
+      "count": 9,
+      "signature": "a51137cc178a2a44",
+      "elapsed_ms": 13210,
+      "aggregate_requests": [
+        {
+          "id": 38,
+          "keyword": "IPX-451",
+          "outcome": "complete",
+          "unique_count": 9,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "FC2-PPV-1234567",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 4798,
+      "aggregate_requests": [
+        {
+          "id": 39,
+          "keyword": "FC2-PPV-1234567",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "fc2ppv1234567",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 9265,
+      "aggregate_requests": [
+        {
+          "id": 40,
+          "keyword": "fc2ppv1234567",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "FC2-1234567",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 8729,
+      "aggregate_requests": [
+        {
+          "id": 41,
+          "keyword": "FC2-1234567",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "259LUXU-1234",
+      "success": true,
+      "count": 1,
+      "signature": "af11702a701da556",
+      "elapsed_ms": 9026,
+      "aggregate_requests": [
+        {
+          "id": 42,
+          "keyword": "259LUXU-1234",
+          "outcome": "complete",
+          "unique_count": 1,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "259luxu1234",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 8999,
+      "aggregate_requests": [
+        {
+          "id": 43,
+          "keyword": "259luxu1234",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "SSIS-586-C",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 9073,
+      "aggregate_requests": [
+        {
+          "id": 44,
+          "keyword": "SSIS-586-C",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "ssis586c",
+      "success": true,
+      "count": 0,
+      "signature": "4f53cda18c2baa0c",
+      "elapsed_ms": 15802,
+      "aggregate_requests": [
+        {
+          "id": 45,
+          "keyword": "ssis586c",
+          "outcome": "complete",
+          "unique_count": 0,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    },
+    {
+      "query": "三上悠亚",
+      "success": true,
+      "count": 259,
+      "signature": "010a883b2642f51f",
+      "elapsed_ms": 2739,
+      "aggregate_requests": [
+        {
+          "id": 46,
+          "keyword": "三上悠亚",
+          "outcome": "complete",
+          "unique_count": 259,
+          "target_count": 2,
+          "success_count": 2
+        }
+      ]
+    }
+  ],
+  "queries_serial": true,
+  "download_actions": 0,
+  "normalization_changed": false
+}

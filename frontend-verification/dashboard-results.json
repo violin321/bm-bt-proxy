@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-11-06T16:03:18.333Z",
+  "checks": [
+    "selected light overview is default; two real-shaped source cards and six recent rows",
+    "overview has no horizontal overflow at 360, 390, 768, 1265, 1440",
+    "recent requests expand locally then load a real cursor page",
+    "seven-day range, latency chart, abnormal-only logs, source detail and retest shortcut",
+    "stats read failure preserves previous data and has a working retry",
+    "empty history shows no invented rate, latency or online status",
+    "untrusted request keywords and upstream names render as text",
+    "ten sources remain readable with the same responsive grid",
+    "zero uncaught dashboard JavaScript errors"
+  ],
+  "errors": [],
+  "fixtureOnly": true,
+  "productionVerified": false
+}

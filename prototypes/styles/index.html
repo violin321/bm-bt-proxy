@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BM-BT · 三种前端风格预览</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="picker.css">
+  <script defer src="preview.js"></script>
+</head>
+<body>
+  <div class="preview-notice">风格预览 <span>全部为样例数据 · 操作只在当前页面生效</span><a href="README.md" target="_blank">预览说明</a></div>
+  <main id="stage"></main>
+  <nav class="proto-picker" aria-label="Prototype variants">
+    <span class="proto-picker-highlight" aria-hidden="true"></span>
+    <button class="proto-picker-item" data-active aria-current="true">素白</button>
+    <button class="proto-picker-item">深色</button>
+    <button class="proto-picker-item">暖灰</button>
+  </nav>
+  <dialog id="editor" aria-labelledby="editorTitle"></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>

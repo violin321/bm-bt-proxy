@@ -19,6 +19,9 @@ class UpstreamSource(BaseModel):
     headers: Dict[str, str] = Field(default_factory=dict)
     keyword_field: str = "keyword"
     timeout: float = 10.0
+    # Changes whenever request configuration changes, including a change back.
+    # Kept in config.json so response history remains valid across restarts.
+    config_revision: str = ""
 
 
 class AppSettings(BaseModel):

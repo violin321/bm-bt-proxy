@@ -1,796 +1,454 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BM-BT-Proxy 控制台</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <style>
-    :root {
-      --primary-grad: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      --bg-body: #f8fafc;
-      --card-bg: #ffffff;
-      --border-color: #e2e8f0;
-    }
-    body {
-      background-color: var(--bg-body);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #0f172a;
-      padding-bottom: 2rem;
-    }
-    .navbar {
-      background: #ffffff;
-      border-bottom: 1px solid var(--border-color);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-      padding: 0.75rem 1rem;
-    }
-    .brand-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: var(--primary-grad);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.1rem;
-      box-shadow: 0 3px 8px rgba(99, 102, 241, 0.3);
-    }
-    .card {
-      border-radius: 14px;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-      background: var(--card-bg);
-      margin-bottom: 1.25rem;
-    }
-    .card-header {
-      background: transparent;
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.9rem 1.15rem;
-    }
-
-    /* 移动端专属自适应表格与卡片列表 */
-    @media (max-width: 768px) {
-      .container { padding-left: 0.75rem; padding-right: 0.75rem; }
-      .desktop-table { display: none !important; }
-      .mobile-source-list { display: flex !important; flex-direction: column; gap: 0.75rem; }
-      .media-poster-box { height: 160px !important; }
-      .torrent-grid { grid-template-columns: 1fr !important; }
-      .nav-btn-text { display: none; }
-    }
-    @media (min-width: 769px) {
-      .mobile-source-list { display: none !important; }
-    }
-
-    /* 移动端源卡片 */
-    .mobile-source-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 0.85rem;
-      background: #fff;
-    }
-
-    /* 影视卡片流式网格 */
-    .torrent-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 1rem;
-    }
-    .media-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #ffffff;
-      transition: all 0.2s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .media-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px -2px rgba(0, 0, 0, 0.06);
-    }
-    .media-poster-box {
-      width: 100%;
-      height: 190px;
-      background: #0f172a;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .media-poster {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .media-badge-group {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-    .poster-fallback {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      font-size: 0.8rem;
-    }
-    .media-content {
-      padding: 0.85rem;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-    }
-    .media-title {
-      font-size: 0.88rem;
-      font-weight: 600;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      margin-bottom: 0.4rem;
-      color: #0f172a;
-    }
-    .media-meta-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.78rem;
-      color: #64748b;
-      margin-bottom: 0.65rem;
-    }
-    .stat-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 6px; }
-  </style>
-</head>
-<body>
-  <!-- 顶部导航栏 -->
-  <nav class="navbar sticky-top">
-    <div class="container" style="max-width: 1140px;">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark m-0" href="/">
-        <div class="brand-icon"><i class="bi bi-magnet-fill"></i></div>
-        <span class="fs-6">BM-BT-Proxy</span>
-        <span class="badge bg-light text-primary border fw-normal" style="font-size: 0.7rem;">v1.3.1</span>
-      </a>
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-sm btn-outline-secondary" onclick="openSecurityModal()" title="接口安全">
-          <i class="bi bi-shield-lock"></i><span class="nav-btn-text ms-1">接口安全</span>
-        </button>
-        <button class="btn btn-sm btn-primary" onclick="openAddModal()" title="添加 BT 源">
-          <i class="bi bi-plus-lg"></i><span class="nav-btn-text ms-1">添加源</span>
-        </button>
-        <button class="btn btn-sm btn-outline-danger" onclick="logout()" title="退出登录">
-          <i class="bi bi-box-arrow-right"></i>
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container py-3" style="max-width: 1140px;">
-    <!-- Byte-Muse 接入横幅 -->
-    <div class="card p-3 mb-3 bg-white border-0 shadow-sm">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 100%;">
-          <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary px-2 py-1 small">
-            <i class="bi bi-broadcast me-1"></i>聚合接口
-          </span>
-          <code class="text-dark bg-light px-2 py-1 rounded small border text-truncate" id="apiUrlCode">加载中...</code>
-          <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="copyApiUrl()">
-            <i class="bi bi-clipboard"></i>
-          </button>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-warning text-dark d-none" id="authBadge"><i class="bi bi-lock-fill me-1"></i>Token 保护</span>
-          <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" id="activeCountBadge">
-            正在检测...
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- BT 源管理卡片 -->
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-hdd-network text-primary fs-5"></i>
-          <h6 class="mb-0 fw-bold">已挂载的 BT 上游源</h6>
-        </div>
-        <button class="btn btn-sm btn-light border py-1 px-2" onclick="loadData()"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
-      </div>
-      <div class="card-body p-0">
-        <!-- 桌面端表格 -->
-        <div class="table-responsive desktop-table">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light text-secondary small">
-              <tr>
-                <th style="width: 50px;">开关</th>
-                <th>源名称</th>
-                <th>请求方式</th>
-                <th>上游地址</th>
-                <th>搜索字段</th>
-                <th>超时</th>
-                <th style="width: 140px;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="sourcesTableBody">
-              <tr><td colspan="7" class="text-center text-muted py-4">正在加载配置...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 移动端卡片列表 -->
-        <div class="p-3 mobile-source-list" id="mobileSourcesList">
-          <div class="text-center text-muted py-3">正在加载配置...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 聚合联调与即时搜索测试 -->
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-play-circle-fill text-warning fs-5"></i>
-          <h6 class="mb-0 fw-bold">在线多源并发聚合测试</h6>
-        </div>
-        <div class="btn-group btn-group-sm" role="group">
-          <button type="button" class="btn btn-outline-primary active" id="btnViewCard" onclick="switchView('card')"><i class="bi bi-grid-fill me-1"></i>海报</button>
-          <button type="button" class="btn btn-outline-primary" id="btnViewJson" onclick="switchView('json')"><i class="bi bi-code-slash me-1"></i>JSON</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="row g-2 align-items-center">
-          <div class="col-12 col-md-7">
-            <div class="input-group">
-              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="testKeyword" placeholder="输入番号或片名 (如 SSIS-586, FC2)" value="SSIS-586">
-            </div>
-          </div>
-          <div class="col-8 col-md-3">
-            <select class="form-select" id="testTargetSource">
-              <option value="all">⚡ 全部源并发聚合（智能去重）</option>
-            </select>
-          </div>
-          <div class="col-4 col-md-2 d-grid">
-            <button class="btn btn-primary" id="testSearchBtn" onclick="runTestSearch()"><i class="bi bi-lightning-charge me-1"></i>测试</button>
-          </div>
-        </div>
-
-        <!-- 状态统计 -->
-        <div id="testMetrics" class="mt-3 d-none">
-          <div class="p-2 border rounded-3 bg-light d-flex flex-wrap gap-2 align-items-center small" id="metricsContent"></div>
-        </div>
-
-        <!-- 搜索结果 -->
-        <div id="testResultPanel" class="mt-3 d-none">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-bold small text-secondary" id="resultSummary">搜索结果</span>
-          </div>
-
-          <!-- 海报卡片视图 -->
-          <div id="cardViewContainer" class="torrent-grid"></div>
-
-          <!-- JSON 视图 -->
-          <div id="jsonViewContainer" class="p-3 border rounded-3 bg-dark text-light d-none font-monospace small" style="max-height: 480px; overflow-y: auto;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 添加/编辑 Modal -->
-  <div class="modal fade" id="sourceModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold" id="modalTitle">添加 BT 源</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="sourceForm">
-            <input type="hidden" id="formSourceId">
-            <div class="mb-3">
-              <label class="form-label small fw-bold">上游请求 URL</label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="formUrl" required placeholder="http://100.x.x.x:6969/api/v1/articles/torrents" onblur="autoDetectName()">
-                <button class="btn btn-outline-secondary" type="button" onclick="autoDetectName(true)" title="根据 URL 自动探测站点名称"><i class="bi bi-magic me-1"></i>自动探测</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>运行概览 · BM-BT-Proxy</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/theme.css" />
+    <link rel="stylesheet" href="/static/dashboard.css" />
+    <script src="/static/console.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳至主要内容</a>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="#overview" aria-label="BM-BT 运行概览"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 8v16M16 5v22M25 8v16" stroke="currentColor" stroke-width="2.5"/><path d="M7 16h18" stroke="currentColor" stroke-width="2"/></svg><span>BM-BT</span></a>
+        <nav class="navigation" aria-label="主导航">
+          <a href="#overview" class="nav-link" data-route="overview"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg><span>运行概览</span></a>
+          <a href="#sources" class="nav-link" data-route="sources"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M15 6.5h2M15 17.5h2"/></svg><span>数据源</span><span class="nav-count" id="navCount">—</span></a>
+          <a href="#search" class="nav-link" data-route="search"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><span>搜索与测试</span></a>
+          <a href="#access" class="nav-link" data-route="access"><svg viewBox="0 0 24 24"><path d="M9 8V4m6 4V4M6 8h12v4a6 6 0 0 1-12 0V8Zm6 10v3"/></svg><span>接入设置</span></a>
+        </nav>
+        <button class="icon-btn" id="logoutBtn" aria-label="退出控制台" title="退出控制台"><svg viewBox="0 0 24 24"><path d="M10 4H5v16h5m5-12 4 4-4 4m-6-4h10"/></svg></button>
+      </header>
+      <div class="main-shell">
+        <div class="sync-bar"><span class="breadcrumb">工作空间<span>/</span><strong id="routeLabel">运行概览</strong></span><div class="topbar-actions"><span class="save-status" id="loadState">正在读取配置</span><button id="refreshBtn" class="icon-btn" aria-label="刷新配置" title="刷新配置"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/></svg></button></div></div>
+        <main id="main" tabindex="-1">
+          <div id="globalStatus" class="notice error" role="alert" hidden></div>
+          <section id="page-overview" class="page" aria-labelledby="overviewHeading">
+            <div class="page-heading dashboard-heading"><div><h1 id="overviewHeading">运行概览</h1><p>从每次搜索，了解你的上游连接。</p></div><div class="dashboard-tools"><div class="segmented" aria-label="统计范围"><button id="todayBtn" aria-pressed="true">今天</button><button id="weekBtn" aria-pressed="false">最近 7 天</button></div><button id="overviewSearch" class="btn primary"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>搜索并测试</button></div></div>
+            <div id="statsStatus" class="notice" role="status">正在读取运行统计…</div>
+            <div id="overviewContent" aria-busy="true">
+              <section id="overviewMetrics" class="metrics-band" aria-label="运行指标"></section>
+              <div class="dashboard-primary">
+                <section class="trend-section" aria-labelledby="trendHeading">
+                  <div class="dashboard-section-heading"><div><h2 id="trendHeading">请求趋势</h2><p id="chartRange">按小时统计</p></div><div class="segmented" aria-label="图表指标"><button id="requestMetric" aria-pressed="true">请求数</button><button id="latencyMetric" aria-pressed="false">耗时</button></div></div>
+                  <div id="requestChart" class="request-chart"></div><div id="chartCaption" class="chart-caption"></div><div id="chartEmpty" class="chart-empty" hidden><strong>还没有请求记录</strong><span>完成一次搜索后，趋势会从这里开始。</span></div>
+                </section>
+                <div class="overview-right"><section class="outcome-summary" aria-labelledby="outcomeHeading"><div class="dashboard-section-heading"><h2 id="outcomeHeading">请求结果构成</h2><span id="outcomeTotal" class="small muted"></span></div><div id="outcomeBar" class="outcome-bar"></div><div id="outcomeLegend" class="outcome-legend"></div><p class="outcome-note">全部目标源成功才计为全部成功；部分失败仍可能返回结果。</p></section><section class="quick-test"><h2>确认连接是否正常</h2><p>用一个关键词，检查每个上游的实际响应。</p><button id="overviewTest" class="btn">测试启用源<svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg></button></section></div>
               </div>
-              <div class="form-text">防呆机制：前后空格、末尾斜杠会自动剔除，缺少 http:// 会自动补齐。</div>
+              <section class="sources-overview" aria-labelledby="overviewSourcesHeading"><div class="dashboard-section-heading"><h2 id="overviewSourcesHeading">上游数据源 <span id="overviewSourceCount" class="count-badge">—</span></h2><a class="text-link" href="#sources">管理数据源 <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div><div id="overviewSources" class="overview-sources-grid"></div><p class="source-caption">状态来自最近一次请求，不能据此判断源持续在线。配置变更后需重新测试。</p></section>
+              <section class="recent-requests" aria-labelledby="recentHeading"><div class="dashboard-section-heading"><div><h2 id="recentHeading">最近请求</h2><p>每次聚合都能追溯到上游响应</p></div><button id="logFilter" class="btn subtle" aria-pressed="false">只看异常</button></div><div class="request-table"><div class="request-table-head"><span>时间</span><span>关键词 / 来源</span><span>聚合状态</span><span>成功源</span><span>结果</span><span>总耗时</span></div><div id="recentRequests"></div></div><button id="moreRequests" class="btn subtle more-requests" hidden>加载更多请求</button></section>
+              <p id="statsFootnote" class="stats-footnote"></p>
             </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">源名称</label>
-              <input type="text" class="form-control" id="formName" required placeholder="输入 URL 后自动嗅探或手动填入">
-            </div>
-            <div class="row mb-3">
-              <div class="col-6">
-                <label class="form-label small fw-bold">请求方式</label>
-                <select class="form-select" id="formMethod">
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                </select>
+          </section>
+          <section
+            id="page-sources"
+            class="page"
+            hidden
+            aria-labelledby="sourcesHeading"
+          >
+            <div class="page-heading">
+              <div>
+                <h1 id="sourcesHeading">数据源</h1>
+                <p>管理上游连接，定位响应问题，再把结果交给 Byte-Muse。</p>
               </div>
-              <div class="col-6">
-                <label class="form-label small fw-bold">关键词参数名</label>
-                <input type="text" class="form-control" id="formKeywordField" value="keyword" placeholder="keyword">
+              <button id="addBtn" class="btn primary">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg
+                >添加数据源
+              </button>
+            </div>
+            <div class="workspace-layout">
+              <section
+                class="source-workspace"
+                aria-labelledby="sourceListHeading"
+              >
+                <div class="section-heading">
+                  <h2 id="sourceListHeading">
+                    数据源<span id="totalCount" class="count-badge">—</span>
+                  </h2>
+                  <span class="muted small" id="activeCount">正在读取…</span>
+                </div>
+                <div class="source-toolbar">
+                  <label class="filter-field"
+                    ><svg viewBox="0 0 24 24">
+                      <circle cx="10.8" cy="10.8" r="6.8" />
+                      <path d="m16 16 4.5 4.5" /></svg
+                    ><input
+                      id="sourceFilter"
+                      type="search"
+                      placeholder="筛选名称或地址"
+                      aria-label="筛选数据源" /></label
+                  ><label class="sr-only" for="sourceStateFilter"
+                    >启用状态筛选</label
+                  ><select id="sourceStateFilter" class="compact-select">
+                    <option value="all">全部状态</option>
+                    <option value="enabled">已启用</option>
+                    <option value="disabled">已停用</option>
+                  </select>
+                </div>
+                <div class="source-table" role="table" aria-label="数据源列表">
+                  <div class="source-table-head" role="row">
+                    <span role="columnheader">数据源 / 请求地址</span
+                    ><span role="columnheader">请求</span
+                    ><span role="columnheader">最近测试</span
+                    ><span role="columnheader">操作</span>
+                  </div>
+                  <div id="sourcesList" role="rowgroup" aria-live="polite">
+                    <div class="skeleton-row"></div>
+                    <div class="skeleton-row"></div>
+                    <div class="skeleton-row"></div>
+                  </div>
+                </div>
+                <div class="table-foot">
+                  <span id="filterCount">正在加载数据源</span
+                  ><span>配置保存在服务端</span>
+                </div>
+              </section>
+              <aside class="diagnostic-aside">
+                <div class="aside-heading">
+                  <span class="status-dot neutral"></span>
+                  <h2>最近一次测试</h2>
+                </div>
+                <div id="lastTestInfo">
+                  <p class="aside-title">还没有测试记录</p>
+                  <p class="muted small">
+                    发起一次关键词搜索，即可查看每个源的响应、耗时和结果数。
+                  </p>
+                </div>
+                <div id="diagnosticSummary" class="diagnostic-summary"></div>
+                <button id="testAllBtn" class="btn full">
+                  测试已启用源<svg viewBox="0 0 24 24">
+                    <path d="M5 12h14m-6-6 6 6-6 6" />
+                  </svg>
+                </button>
+                <p class="micro muted">
+                  本页显示最近一次手动测试。运行概览保留业务请求与测试历史。
+                </p>
+                <div class="aside-guide">
+                  <h3>接好数据源，然后开始搜索。</h3>
+                  <p>每个源可以独立设置请求方式、关键词参数、请求头与超时。</p>
+                  <a href="#access" class="text-link"
+                    >获取 Byte-Muse 接入地址<svg viewBox="0 0 24 24">
+                      <path d="M5 12h14m-6-6 6 6-6 6" /></svg
+                  ></a>
+                </div>
+              </aside>
+            </div>
+          </section>
+          <section
+            id="page-search"
+            class="page"
+            aria-labelledby="searchHeading"
+            hidden
+          >
+            <div class="page-heading">
+              <div>
+                <h1 id="searchHeading">搜索与测试</h1>
+                <p>向指定源或所有启用源发起请求，同时检查响应与聚合结果。</p>
               </div>
             </div>
-            <div class="row mb-3">
-              <div class="col-6">
-                <label class="form-label small fw-bold">超时时间 (秒)</label>
-                <input type="number" step="0.5" class="form-control" id="formTimeout" value="10.0">
+            <form id="searchForm" class="search-panel">
+              <div class="search-controls">
+                <label class="field search-keyword" for="testKeyword"
+                  >搜索关键词<input
+                    id="testKeyword"
+                    placeholder="输入名称、编号或关键词"
+                    required
+                    autocomplete="off"
+                    maxlength="500" /></label
+                ><label class="field search-target" for="testTargetSource"
+                  >测试范围<select id="testTargetSource">
+                    <option value="all">全部启用源 · 聚合去重</option>
+                  </select></label
+                ><button id="testSearchBtn" class="btn primary" type="submit">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="10.8" cy="10.8" r="6.8" />
+                    <path d="m16 16 4.5 4.5" /></svg
+                  ><span>搜索并测试</span>
+                </button>
               </div>
-              <div class="col-6">
-                <label class="form-label small fw-bold">是否启用</label>
-                <div class="form-check form-switch mt-2">
-                  <input class="form-check-input" type="checkbox" id="formEnabled" checked>
-                  <label class="form-check-label" for="formEnabled">启用此源</label>
+              <p id="searchStatus" class="search-status" role="status">
+                测试会实际请求上游；启用状态不代表源站可用。
+              </p>
+            </form>
+            <section
+              id="testDiagnostics"
+              class="test-diagnostics"
+              aria-labelledby="diagnosticHeading"
+              hidden
+            >
+              <div class="section-heading">
+                <h2 id="diagnosticHeading">源响应</h2>
+                <span class="small muted" id="testTime"></span>
+              </div>
+              <div id="metrics" class="metrics"></div>
+            </section>
+            <div id="searchEmpty" class="empty-search">
+              <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <rect x="10" y="8" width="36" height="44" rx="5" />
+                <path d="M18 20h20M18 28h12M18 36h9" />
+                <circle cx="44" cy="43" r="10" />
+                <path d="m51 50 7 7" />
+              </svg>
+              <h2>先输入一个关键词</h2>
+              <p>响应明细、搜索结果和原始 JSON，会一起出现在这里。</p>
+            </div>
+            <section
+              id="resultPanel"
+              class="result-panel"
+              aria-label="搜索结果"
+              hidden
+            >
+              <div class="results-heading">
+                <div>
+                  <h2>
+                    搜索结果 <span id="resultCount" class="count-badge">0</span>
+                  </h2>
+                  <p id="resultSummary" class="small muted"></p>
+                </div>
+                <div class="results-actions">
+                  <div class="segmented" aria-label="结果视图">
+                    <button id="cardBtn" aria-pressed="true">卡片</button
+                    ><button id="jsonBtn" aria-pressed="false">JSON</button>
+                  </div>
+                  <button id="copyJson" class="btn subtle">复制 JSON</button>
                 </div>
               </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">请求头鉴权 (Token / Headers)</label>
-              <textarea class="form-control font-monospace" id="formHeaders" rows="3" placeholder='直接粘贴 Token 或填 JSON: {"X-API-Key": "***"}'></textarea>
-              <div class="form-text">防呆支持：可直接粘贴 Token 字符串（自动封装），也可填完整 JSON。</div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary px-4" onclick="saveSourceForm()">保存配置</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 接口安全设置 Modal -->
-  <div class="modal fade" id="securityModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>聚合接口安全设置</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="alert alert-light border small text-muted mb-3">
-            为此中继服务的 <code>/api/torrents</code> 接口设置 API Key。开启后，Byte-Muse 必须在请求参数携带 <code>?token=***</code> 或 <code>X-API-Key</code> 请求头才能拉取结果。
-          </div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="secEnabled">
-            <label class="form-check-label fw-bold" for="secEnabled">启用 API Key 保护</label>
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-bold">API Key 令牌</label>
-            <div class="input-group">
-              <input type="text" class="form-control font-monospace" id="secApiKey" placeholder="自定义或生成安全令牌">
-              <button class="btn btn-outline-secondary" type="button" onclick="generateRandomKey()"><i class="bi bi-shuffle me-1"></i>随机生成</button>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary px-4" onclick="saveSecuritySettings()">保存设置</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    let appSettings = { api_key_enabled: false, api_key: "", sources: [] };
-    let currentResults = [];
-    let currentView = 'card';
-    const sourceModal = new bootstrap.Modal(document.getElementById('sourceModal'));
-    const securityModal = new bootstrap.Modal(document.getElementById('securityModal'));
-
-    async function loadData() {
-      try {
-        const resp = await fetch('/api/settings');
-        if (resp.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        if (!resp.ok) {
-          throw new Error('HTTP ' + resp.status);
-        }
-        appSettings = await resp.json();
-        renderSourcesTable();
-        updateTestTargetOptions();
-        updateApiUrlDisplay();
-      } catch (err) {
-        console.error('loadData error:', err);
-        document.getElementById('sourcesTableBody').innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">加载配置失败: ${escapeHtml(err.message)} <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadData()">重试</button></td></tr>`;
-        document.getElementById('mobileSourcesList').innerHTML = `<div class="text-center text-danger py-3">加载配置失败: ${escapeHtml(err.message)} <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadData()">重试</button></div>`;
-      }
-    }
-
-    async function logout() {
-      if (!confirm('确定要退出管理控制台吗？')) return;
-      await fetch('/api/logout', { method: 'POST' });
-      window.location.href = '/login';
-    }
-
-    function updateApiUrlDisplay() {
-      const code = document.getElementById('apiUrlCode');
-      const badge = document.getElementById('authBadge');
-      let base = `${window.location.origin}/api/torrents?keyword=`;
-      if (appSettings.api_key_enabled && appSettings.api_key) {
-        base = `${window.location.origin}/api/torrents?token=${encodeURIComponent(appSettings.api_key)}&keyword=`;
-        badge.classList.remove('d-none');
-      } else {
-        badge.classList.add('d-none');
-      }
-      code.innerText = base;
-    }
-
-    function copyApiUrl() {
-      const text = document.getElementById('apiUrlCode').innerText;
-      navigator.clipboard.writeText(text).then(() => alert('已成功复制 Byte-Muse 接入地址！'));
-    }
-
-    function renderSourcesTable() {
-      const tbody = document.getElementById('sourcesTableBody');
-      const mobileList = document.getElementById('mobileSourcesList');
-      const activeCountBadge = document.getElementById('activeCountBadge');
-      const sources = appSettings.sources || [];
-      const enabledCount = sources.filter(s => s.enabled).length;
-      activeCountBadge.innerText = `已启用 ${enabledCount} / ${sources.length} 个源`;
-
-      if (sources.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无配置任何 BT 源，点击上方添加</td></tr>';
-        mobileList.innerHTML = '<div class="text-center text-muted py-4">暂无配置任何 BT 源，点击上方添加</div>';
-        return;
-      }
-
-      // 渲染桌面端表格
-      tbody.innerHTML = sources.map(s => `
-        <tr>
-          <td>
-            <div class="form-check form-switch m-0">
-              <input class="form-check-input" type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSourceStatus('${s.id}', this.checked)">
-            </div>
-          </td>
-          <td class="fw-bold">${escapeHtml(s.name)}</td>
-          <td><span class="badge ${s.method === 'POST' ? 'bg-success' : 'bg-primary'}">${s.method}</span></td>
-          <td><code class="text-truncate d-inline-block text-dark small" style="max-width: 260px;" title="${escapeHtml(s.url)}">${escapeHtml(s.url)}</code></td>
-          <td><span class="badge bg-light text-secondary border">${escapeHtml(s.keyword_field)}</span></td>
-          <td><span class="small text-muted">${s.timeout}s</span></td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="openEditModal('${s.id}')"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteSource('${s.id}')"><i class="bi bi-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
-
-      // 渲染移动端卡片列表
-      mobileList.innerHTML = sources.map(s => `
-        <div class="mobile-source-card">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-bold text-dark fs-6">${escapeHtml(s.name)}</span>
-            <div class="form-check form-switch m-0">
-              <input class="form-check-input" type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSourceStatus('${s.id}', this.checked)">
-            </div>
-          </div>
-          <div class="d-flex gap-2 align-items-center mb-2">
-            <span class="badge ${s.method === 'POST' ? 'bg-success' : 'bg-primary'}">${s.method}</span>
-            <span class="badge bg-light text-secondary border">${escapeHtml(s.keyword_field)}</span>
-            <span class="small text-muted ms-auto">${s.timeout}s 超时</span>
-          </div>
-          <div class="small text-truncate mb-2 text-muted">
-            <code>${escapeHtml(s.url)}</code>
-          </div>
-          <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-            <button class="btn btn-sm btn-outline-primary py-1 px-3" onclick="openEditModal('${s.id}')"><i class="bi bi-pencil me-1"></i>编辑</button>
-            <button class="btn btn-sm btn-outline-danger py-1 px-3" onclick="deleteSource('${s.id}')"><i class="bi bi-trash me-1"></i>删除</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function updateTestTargetOptions() {
-      const select = document.getElementById('testTargetSource');
-      const sources = appSettings.sources || [];
-      select.innerHTML = '<option value="all">⚡ 全部源并发聚合（智能去重）</option>' +
-        sources.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${s.method})</option>`).join('');
-    }
-
-    async function autoDetectName(force = false) {
-      const urlInput = document.getElementById('formUrl');
-      const nameInput = document.getElementById('formName');
-      const rawUrl = urlInput.value.trim();
-      if (!rawUrl) return;
-
-      if (!force && nameInput.value.trim() !== '') return;
-
-      try {
-        const resp = await fetch('/api/detect-name', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: rawUrl })
-        });
-        const res = await resp.json();
-        if (res.name) nameInput.value = res.name;
-      } catch (e) {
-        console.log("Auto-detect failed:", e);
-      }
-    }
-
-    async function toggleSourceStatus(id, enabled) {
-      const src = appSettings.sources.find(s => s.id === id);
-      if (!src) return;
-      src.enabled = enabled;
-      await fetch(`/api/sources/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(src)
-      });
-      loadData();
-    }
-
-    function openAddModal() {
-      document.getElementById('modalTitle').innerText = '添加 BT 源';
-      document.getElementById('formSourceId').value = '';
-      document.getElementById('formName').value = '';
-      document.getElementById('formUrl').value = '';
-      document.getElementById('formMethod').value = 'GET';
-      document.getElementById('formKeywordField').value = 'keyword';
-      document.getElementById('formTimeout').value = '10.0';
-      document.getElementById('formEnabled').checked = true;
-      document.getElementById('formHeaders').value = '';
-      sourceModal.show();
-    }
-
-    function openEditModal(id) {
-      const s = appSettings.sources.find(item => item.id === id);
-      if (!s) return;
-      document.getElementById('modalTitle').innerText = '编辑 BT 源';
-      document.getElementById('formSourceId').value = s.id;
-      document.getElementById('formName').value = s.name;
-      document.getElementById('formUrl').value = s.url;
-      document.getElementById('formMethod').value = s.method;
-      document.getElementById('formKeywordField').value = s.keyword_field;
-      document.getElementById('formTimeout').value = s.timeout;
-      document.getElementById('formEnabled').checked = s.enabled;
-      document.getElementById('formHeaders').value = Object.keys(s.headers || {}).length ? JSON.stringify(s.headers, null, 2) : '';
-      sourceModal.show();
-    }
-
-    async function saveSourceForm() {
-      const id = document.getElementById('formSourceId').value;
-      const name = document.getElementById('formName').value.trim();
-      const url = document.getElementById('formUrl').value.trim();
-      const method = document.getElementById('formMethod').value;
-      const keyword_field = document.getElementById('formKeywordField').value.trim() || 'keyword';
-      const timeout = parseFloat(document.getElementById('formTimeout').value) || 10.0;
-      const enabled = document.getElementById('formEnabled').checked;
-      const headersStr = document.getElementById('formHeaders').value.trim();
-
-      if (!url) {
-        alert('请填写请求 URL');
-        return;
-      }
-
-      let cleanUrl = url.trim();
-      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-        cleanUrl = 'http://' + cleanUrl;
-      }
-      cleanUrl = cleanUrl.replace(/\/+$/, '');
-
-      let headers = {};
-      if (headersStr) {
-        try {
-          headers = JSON.parse(headersStr);
-        } catch (e) {
-          if (headersStr.indexOf(':') === -1) {
-            headers = { "X-API-Key": headersStr.trim() };
-          } else {
-            alert('Headers 格式不合法，请输入合法 JSON 或直接粘贴 Token！');
-            return;
-          }
-        }
-      }
-
-      const finalName = name || cleanUrl.split('/')[2] || 'BT源';
-      const payload = { name: finalName, url: cleanUrl, method, keyword_field, timeout, enabled, headers };
-
-      try {
-        if (id) {
-          await fetch(`/api/sources/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        } else {
-          await fetch('/api/sources', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        }
-        sourceModal.hide();
-        loadData();
-      } catch (err) {
-        alert('保存失败: ' + err);
-      }
-    }
-
-    async function deleteSource(id) {
-      if (!confirm('确定要删除该 BT 源配置吗？')) return;
-      try {
-        await fetch(`/api/sources/${id}`, { method: 'DELETE' });
-        loadData();
-      } catch (err) {
-        alert('删除失败: ' + err);
-      }
-    }
-
-    function openSecurityModal() {
-      document.getElementById('secEnabled').checked = appSettings.api_key_enabled || false;
-      document.getElementById('secApiKey').value = appSettings.api_key || '';
-      securityModal.show();
-    }
-
-    function generateRandomKey() {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let key = 'bm_';
-      for (let i = 0; i < 24; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-      document.getElementById('secApiKey').value = key;
-    }
-
-    async function saveSecuritySettings() {
-      const enabled = document.getElementById('secEnabled').checked;
-      const key = document.getElementById('secApiKey').value.trim();
-      if (enabled && !key) {
-        alert('启用 API Key 保护时，必须填写或生成一个 API Key！');
-        return;
-      }
-      try {
-        await fetch('/api/security', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key_enabled: enabled, api_key: key })
-        });
-        securityModal.hide();
-        loadData();
-      } catch (err) {
-        alert('保存安全配置失败: ' + err);
-      }
-    }
-
-    function switchView(view) {
-      currentView = view;
-      document.getElementById('btnViewCard').classList.toggle('active', view === 'card');
-      document.getElementById('btnViewJson').classList.toggle('active', view === 'json');
-      document.getElementById('cardViewContainer').classList.toggle('d-none', view !== 'card');
-      document.getElementById('jsonViewContainer').classList.toggle('d-none', view !== 'json');
-    }
-
-    async function runTestSearch() {
-      const keyword = document.getElementById('testKeyword').value.trim();
-      const target = document.getElementById('testTargetSource').value;
-      const btn = document.getElementById('testSearchBtn');
-      const metricsDiv = document.getElementById('testMetrics');
-      const metricsContent = document.getElementById('metricsContent');
-      const resultPanel = document.getElementById('testResultPanel');
-      const resultSummary = document.getElementById('resultSummary');
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>测试中...';
-
-      try {
-        const resp = await fetch('/api/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keyword, source_id: target })
-        });
-        const res = await resp.json();
-        currentResults = res.data || [];
-
-        metricsDiv.classList.remove('d-none');
-        resultPanel.classList.remove('d-none');
-
-        // 渲染状态指标
-        metricsContent.innerHTML = res.details.map(d => `
-          <span class="badge ${d.success ? 'bg-success' : 'bg-danger'} stat-badge">
-            ${escapeHtml(d.name)}: ${d.status_code || 'Err'} (${d.latency_ms}ms) -> ${d.count}条
-          </span>
-        `).join('') + `<span class="badge bg-primary stat-badge">智能去重后: ${currentResults.length} 条</span>`;
-
-        resultSummary.innerText = `聚合耗时: ${res.total_time_ms}ms | 获得有效种子: ${currentResults.length} 个`;
-
-        // 渲染 JSON
-        document.getElementById('jsonViewContainer').innerText = JSON.stringify({ data: currentResults }, null, 2);
-
-        // 渲染海报卡片
-        renderCardView(currentResults);
-      } catch (err) {
-        alert('测试请求失败: ' + err);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-lightning-charge me-1"></i>测试';
-      }
-    }
-
-    function renderCardView(items) {
-      const container = document.getElementById('cardViewContainer');
-      if (!items || items.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>未搜索到任何种子资源</div>';
-        return;
-      }
-
-      container.innerHTML = items.map((item, index) => {
-        const title = item.title || item.name || '未知标题';
-        const magnet = item.magnet || item.download_url || '';
-        const img = item.preview_image || item.image || item.cover || '';
-        const sizeMb = item.size_mb ? `${item.size_mb} MB` : (item.size ? formatBytes(item.size) : '未知大小');
-        const seeders = item.seeders !== undefined ? item.seeders : '-';
-        const site = item.site || item.website || '默认源';
-
-        let badgesHtml = '';
-        if (item.chinese || item.c_sub) badgesHtml += '<span class="badge bg-danger">中文字幕</span> ';
-        if (item.uncensored || item.uc) badgesHtml += '<span class="badge bg-warning text-dark">无码破解</span> ';
-        if (item.uhd || item.hd) badgesHtml += '<span class="badge bg-info text-dark">高清</span> ';
-
-        const posterHtml = img ? `
-          <img src="${escapeHtml(img)}" class="media-poster" alt="海报" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'poster-fallback\\'><i class=\\'bi bi-image fs-1 mb-1\\'></i><span>暂无海报预览</span></div>';">
-        ` : `
-          <div class="poster-fallback"><i class="bi bi-image fs-1 mb-1"></i><span>无封面</span></div>
-        `;
-
-        return `
-          <div class="media-card">
-            <div class="media-poster-box">
-              ${posterHtml}
-              <div class="media-badge-group">
-                <span class="badge bg-dark bg-opacity-75">${escapeHtml(site)}</span>
-                ${badgesHtml}
+              <div id="cardView" class="results"></div>
+              <pre
+                id="jsonView"
+                tabindex="0"
+                aria-label="搜索结果 JSON"
+                hidden
+              ></pre>
+            </section>
+          </section>
+          <section
+            id="page-access"
+            class="page"
+            aria-labelledby="accessHeading"
+            hidden
+          >
+            <div class="page-heading">
+              <div>
+                <h1 id="accessHeading">接入设置</h1>
+                <p>复制聚合地址，按需开启 API Key 保护。</p>
               </div>
             </div>
-            <div class="media-content">
-              <div class="media-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
-              <div class="media-meta-row">
-                <span><i class="bi bi-hdd me-1"></i>${sizeMb}</span>
-                <span><i class="bi bi-arrow-up-circle me-1 text-success"></i>做种: ${seeders}</span>
-                ${item.number ? `<span><i class="bi bi-tag me-1"></i>${escapeHtml(item.number)}</span>` : ''}
-              </div>
-              <div class="mt-auto d-flex gap-2">
-                ${magnet ? `
-                  <button class="btn btn-sm btn-outline-primary w-100 py-1" onclick="copyText('${escapeHtml(magnet)}')">
-                    <i class="bi bi-magnet me-1"></i>复制磁力链
+            <div class="settings-layout">
+              <section
+                class="settings-section"
+                aria-labelledby="endpointHeading"
+              >
+                <div class="section-heading">
+                  <h2 id="endpointHeading">聚合接口</h2>
+                  <span id="authBadge" class="tag">正在读取</span>
+                </div>
+                <p class="muted small">
+                  将以下地址填入 Byte-Muse 的 <code>BT_URL</code>，请求方式选择
+                  <code>GET</code>。
+                </p>
+                <div class="endpoint">
+                  <code id="apiUrlCode">正在读取接入地址…</code
+                  ><button id="copyApi" class="btn" aria-label="复制接入地址">
+                    复制地址
                   </button>
-                ` : ''}
-              </div>
+                </div>
+                <div class="connection-note">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 11v6m0-10h.01" />
+                  </svg>
+                  <p>
+                    这里使用当前浏览器访问的域名。若 Byte-Muse
+                    在其他容器中运行，请换成它能访问的服务地址，并保留路径和参数。
+                  </p>
+                </div>
+              </section>
+              <form id="securityForm" class="settings-section">
+                <div class="section-heading">
+                  <h2>接口保护</h2>
+                  <label class="switch"
+                    ><input
+                      id="secEnabled"
+                      type="checkbox"
+                      role="switch"
+                    /><span>启用 API Key</span></label
+                  >
+                </div>
+                <p class="muted small">
+                  开启后，聚合请求需携带有效令牌。修改保存后请同步更新 Byte-Muse
+                  接入地址。
+                </p>
+                <label class="field" for="secApiKey"
+                  >API Key
+                  <div class="input-with-button">
+                    <input
+                      id="secApiKey"
+                      type="password"
+                      autocomplete="off"
+                      spellcheck="false"
+                      placeholder="填写或生成访问令牌"
+                    /><button
+                      id="revealBtn"
+                      type="button"
+                      class="btn subtle"
+                      aria-pressed="false"
+                    >
+                      显示
+                    </button>
+                  </div></label
+                >
+                <div class="settings-actions">
+                  <button id="generateBtn" class="btn" type="button">
+                    生成新令牌</button
+                  ><button
+                    id="saveSecurityBtn"
+                    class="btn primary"
+                    type="submit"
+                  >
+                    保存设置
+                  </button>
+                </div>
+                <div
+                  id="securityError"
+                  class="notice error"
+                  role="alert"
+                  hidden
+                ></div>
+                <p
+                  id="securitySaved"
+                  class="small success-text"
+                  role="status"
+                ></p>
+              </form>
             </div>
+          </section>
+          <footer class="page-footer">
+            <span>BM-BT-Proxy</span><span>多源连接，一个入口。</span>
+          </footer>
+        </main>
+      </div>
+    </div>
+    <dialog
+      id="sourceDialog"
+      class="source-drawer"
+      aria-labelledby="sourceTitle"
+    >
+      <form id="sourceForm">
+        <header class="dialog-head">
+          <div>
+            <h2 id="sourceTitle">添加数据源</h2>
+            <p class="small muted">为上游建立独立的请求配置。</p>
           </div>
-        `;
-      }).join('');
-    }
-
-    function formatBytes(bytes) {
-      if (typeof bytes === 'string') return bytes;
-      if (bytes === 0) return '0 B';
-      const k = 1024;
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    function copyText(text) {
-      navigator.clipboard.writeText(text).then(() => alert('磁力链接已复制到剪贴板！'));
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    window.onload = () => {
-      loadData();
-    };
-  </script>
-</body>
+          <button
+            class="icon-btn"
+            type="button"
+            data-close="sourceDialog"
+            aria-label="关闭源配置"
+          >
+            <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </header>
+        <div class="dialog-body">
+          <input id="sourceId" type="hidden" /><label
+            class="field"
+            for="formName"
+            >源名称<input
+              id="formName"
+              placeholder="例如：本地搜索源"
+              maxlength="150" /></label
+          ><label class="field" for="formUrl"
+            >请求地址<input
+              id="formUrl"
+              aria-label="请求地址"
+              placeholder="https://example.com/api/torrents"
+              required
+              spellcheck="false"
+            /><span class="hint"
+              >支持 HTTP / HTTPS；未填写协议时补充 HTTP。</span
+            ></label
+          >
+          <div class="detect-row">
+            <button id="detectBtn" class="text-link" type="button">
+              从地址识别名称</button
+            ><span id="detectStatus" class="hint" role="status"></span>
+          </div>
+          <div class="form-divider"></div>
+          <div class="pair">
+            <label class="field" for="formMethod"
+              >请求方式<select id="formMethod" aria-label="请求方式">
+                <option>GET</option>
+                <option>POST</option>
+              </select></label
+            ><label class="field" for="formKeywordField"
+              >关键词参数<input
+                id="formKeywordField"
+                value="keyword"
+                maxlength="100"
+            /></label>
+          </div>
+          <div class="pair">
+            <label class="field" for="formTimeout"
+              >超时（秒）<input
+                id="formTimeout"
+                type="number"
+                value="10"
+                min="0.5"
+                step="0.5" /></label
+            ><label class="switch enabled-field"
+              ><input
+                id="formEnabled"
+                type="checkbox"
+                checked
+                role="switch"
+              /><span>启用此源</span></label
+            >
+          </div>
+          <label class="field" for="formHeaders"
+            >请求头 / Token<textarea
+              id="formHeaders"
+              aria-label="请求头 / Token"
+              rows="5"
+              spellcheck="false"
+              placeholder='{"X-API-Key": "your-token"}'
+            ></textarea
+            ><span class="hint"
+              >支持字符串值的 JSON 对象；直接粘贴 Token 时作为 X-API-Key。</span
+            ></label
+          >
+          <div id="sourceError" class="notice error" role="alert" hidden></div>
+        </div>
+        <footer class="dialog-foot">
+          <button class="btn" type="button" data-close="sourceDialog">
+            取消</button
+          ><button id="saveSourceBtn" class="btn primary" type="submit">
+            保存数据源
+          </button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog
+      id="confirmDialog"
+      class="confirm-dialog"
+      aria-labelledby="confirmTitle"
+    >
+      <div class="confirm-content">
+        <h2 id="confirmTitle">删除数据源？</h2>
+        <p id="confirmText" class="muted"></p>
+        <div id="confirmError" class="notice error" role="alert" hidden></div>
+        <div class="dialog-foot">
+          <button id="cancelDelete" class="btn" type="button">取消</button
+          ><button id="confirmDelete" class="btn danger" type="button">
+            确认删除
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="requestDialog" class="request-dialog" aria-labelledby="requestTitle"><header class="dialog-head"><div><h2 id="requestTitle">请求详情</h2><p id="requestMeta" class="small muted"></p></div><button class="icon-btn" data-close="requestDialog" aria-label="关闭请求详情"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="dialog-body"><div id="requestSummary" class="request-summary"></div><div id="requestDetails" class="metrics"></div><p class="small muted">记录保存该次响应。要验证当前配置，请重新测试。</p><button id="retestRequest" class="btn primary">重新搜索测试</button></div></dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </body>
 </html>
