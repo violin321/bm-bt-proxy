@@ -1,0 +1,242 @@
+{
+  "production": {
+    "image": "violin321/bm-bt-proxy@sha256:d59c9d5a6852dbc9d50e11c102c80fa985d6686fc3b670cc9f2322b22748ee9e",
+    "image_id": "sha256:e16fbcb5d46f756b2181cced7c8f0bb29aa55231b4b6410506bf71337d455ced",
+    "revision": "264ca70e4e00423107916305a87ec5d969874d3c",
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64",
+      "unknown/unknown",
+      "unknown/unknown"
+    ],
+    "stage_ready": true,
+    "deployed_at_utc": "2026-11-06T16:26:59.805318+00:00",
+    "backup": "/root/docker/bm-bt-proxy-releases/1.4.0-public-20261107/backup-20261106T162621Z",
+    "config_bytes_unchanged": true,
+    "environment_unchanged": true,
+    "old_cookie_valid": true,
+    "history_retained": true,
+    "retained_requests": 14,
+    "sqlite": "ok",
+    "networks": [
+      "avdb_default",
+      "bm-bt-proxy-prod_default"
+    ],
+    "real_sources": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "count": 8,
+        "latency_ms": 1225
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "count": 6,
+        "latency_ms": 3101
+      }
+    ],
+    "unique_count": 8,
+    "api_aliases": true,
+    "auth": true,
+    "other_services_unchanged": true,
+    "healthy": true,
+    "physical_phone": false,
+    "production_browser": true,
+    "byte_muse_web_cases": 6,
+    "staging_removed": true,
+    "completed_at_utc": "2026-11-06T16:29:43.938790+00:00"
+  },
+  "browser": {
+    "target": "production",
+    "checks": [
+      "actual deployed login, overview and two configured sources",
+      "all four actual workspaces have no overflow at 1440, 768, 390 and 360",
+      "mobile actual source editor opens with deletion available and cancels without changes",
+      "zero uncaught JavaScript errors"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false
+  },
+  "stage": {
+    "real_sources": [
+      {
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1452,
+        "count": 8
+      },
+      {
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1029,
+        "count": 6
+      }
+    ],
+    "raw_count": 14,
+    "unique_count": 8,
+    "poster_metadata_count": 8,
+    "poster_checks": [
+      {
+        "status": 403,
+        "content_type": "text/html"
+      },
+      {
+        "status": 200,
+        "content_type": "image/jpeg"
+      }
+    ],
+    "summary": {
+      "requests": 34,
+      "complete": 27,
+      "partial": 3,
+      "failed": 4,
+      "raw_count": 760,
+      "unique_count": 422,
+      "duplicate_count": 338,
+      "success_rate": 79.4,
+      "average_ms": 1912,
+      "p95_ms": 7944
+    },
+    "checks": [
+      "real stage login and unauthenticated settings/stats protection",
+      "container version and all shipped static assets",
+      "both real sources respond and aggregation has no duplicate dedup keys",
+      "real poster fields preserved; media status recorded without fabricating images",
+      "real business GET/POST and both endpoint aliases",
+      "controlled upstream 401, timeout, complete failure and partial success are classified correctly",
+      "real API Key enforcement and query/header compatibility",
+      "stage settings fully restored; no production configuration mutation",
+      "actual persisted statistics, outcomes and query validation"
+    ]
+  },
+  "byte_muse_browser": {
+    "version": "1.32.0",
+    "cases": [
+      {
+        "input": "SSIS-586",
+        "browserRequestQuery": "SSIS-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      },
+      {
+        "input": "ssis-586",
+        "browserRequestQuery": "ssis-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      },
+      {
+        "input": "SsIs-586",
+        "browserRequestQuery": "SsIs-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      },
+      {
+        "input": "SSIS586",
+        "browserRequestQuery": "SSIS586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      },
+      {
+        "input": "ssis586",
+        "browserRequestQuery": "ssis586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      },
+      {
+        "input": "SsIs586",
+        "browserRequestQuery": "SsIs586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "d5454904355a4648"
+      }
+    ],
+    "pageErrors": [],
+    "realBrowser": true
+  },
+  "byte_muse_aggregate_requests": [
+    {
+      "id": 50,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 51,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 52,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 53,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 54,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 55,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    }
+  ],
+  "github_build_runs": [
+    42250982243,
+    42251329371
+  ],
+  "public_browser": {
+    "target": "public",
+    "checks": [
+      "actual deployed login, overview and two configured sources",
+      "all four actual workspaces have no overflow at 1440, 768, 390 and 360",
+      "mobile actual source editor opens with deletion available and cancels without changes",
+      "zero uncaught JavaScript errors"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false
+  },
+  "network_observation": "Some urllib and Playwright APIRequestContext requests were closed unexpectedly; curl OpenAPI and authenticated Chromium public-page acceptance succeeded. Cause not established."
+}
