@@ -22,27 +22,32 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3-fill text-primary me-2"></i>BM-BT-Proxy</h3>
-        <p class="text-muted small mb-0">Byte-Muse 多上游 BT 异步聚合中继控制台</p>
+        <p class="text-muted small mb-0">Byte-Muse 多上游 BT 异步聚合中继控制台 (v1.2.0)</p>
       </div>
       <div>
+        <button class="btn btn-outline-secondary me-2" onclick="openSecurityModal()"><i class="bi bi-shield-lock me-1"></i>接口安全</button>
         <button class="btn btn-primary" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>添加 BT 源</button>
       </div>
     </div>
 
     <!-- 聚合接口调用提示 -->
-    <div class="alert alert-info py-2 px-3 small d-flex justify-content-between align-items-center">
-      <div>
+    <div class="alert alert-info py-2 px-3 small d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="text-truncate">
         <strong><i class="bi bi-info-circle me-1"></i>Byte-Muse 聚合接口地址：</strong>
-        <code class="text-dark bg-white px-2 py-1 rounded" id="apiUrlCode">http://&lt;你的IP或容器名&gt;:8000/api/torrents?keyword=</code>
+        <code class="text-dark bg-white px-2 py-1 rounded" id="apiUrlCode">http://&lt;IP&gt;:8000/api/torrents?keyword=</code>
+        <button class="btn btn-sm btn-link text-decoration-none py-0" onclick="copyApiUrl()"><i class="bi bi-clipboard"></i> 复制</button>
       </div>
-      <span class="badge bg-success" id="activeCountBadge">加载中...</span>
+      <div>
+        <span class="badge bg-warning text-dark me-2 d-none" id="authBadge"><i class="bi bi-lock-fill me-1"></i>Token 保护已开启</span>
+        <span class="badge bg-success" id="activeCountBadge">加载中...</span>
+      </div>
     </div>
 
     <!-- BT 源管理卡片 -->
     <div class="card mb-4">
       <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-semibold"><i class="bi bi-server me-2"></i>已配置的 BT 源</h5>
-        <button class="btn btn-sm btn-outline-secondary" onclick="loadSources()"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadData()"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -76,7 +81,7 @@
           <div class="col-md-7">
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" id="testKeyword" placeholder="输入测试关键词（如番号、片名、发布组）" value="FC2">
+              <input type="text" class="form-control" id="testKeyword" placeholder="输入测试关键词（如番号、片名、发布组）" value="SSIS-586">
             </div>
           </div>
           <div class="col-md-3">
@@ -118,13 +123,17 @@
           <form id="sourceForm">
             <input type="hidden" id="formSourceId">
             <div class="mb-3">
-              <label class="form-label">源名称</label>
-              <input type="text" class="form-control" id="formName" required placeholder="如：我的本地主站、备用源">
+              <label class="form-label">上游请求 URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="formUrl" required placeholder="http://100.x.x.x:6969/api/v1/articles/torrents" onblur="autoDetectName()">
+                <button class="btn btn-outline-secondary" type="button" onclick="autoDetectName(true)" title="根据 URL 自动探测站点名称"><i class="bi bi-magic me-1"></i>自动探测</button>
+              </div>
+              <div class="form-text">自动防呆：前后空格、末尾斜杠会自动剔除，缺少 http:// 会自动补齐。</div>
             </div>
             <div class="mb-3">
-              <label class="form-label">上游请求 URL</label>
-              <input type="text" class="form-control" id="formUrl" required placeholder="http://192.168.1.30:6969/api/v1/articles/torrents">
-              <div class="form-text">GET 方式时会自动拼接参数；POST 方式会发 JSON 请求体。</div>
+              <label class="form-label">源名称</label>
+              <input type="text" class="form-control" id="formName" required placeholder="如：我的本地主站、备用源">
+              <div class="form-text text-muted">输入 URL 后失焦即可自动探测填入，也可手动修改。</div>
             </div>
             <div class="row mb-3">
               <div class="col-6">
@@ -153,9 +162,9 @@
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">自定义请求头 (Headers JSON)</label>
-              <textarea class="form-control font-monospace" id="formHeaders" rows="3" placeholder='{"X-API-Key": "your_token"}'></textarea>
-              <div class="form-text">可选，填合法 JSON，如需特定 Header / 鉴权填此处。</div>
+              <label class="form-label">请求头鉴权 (Token / Headers)</label>
+              <textarea class="form-control font-monospace" id="formHeaders" rows="3" placeholder='直接粘贴 Token 或填 JSON: {"X-API-Key": "***"}'></textarea>
+              <div class="form-text">防呆支持：可直接粘贴 Token 字符串（自动封装），也可填完整 JSON。</div>
             </div>
           </form>
         </div>
@@ -167,34 +176,87 @@
     </div>
   </div>
 
+  <!-- 接口安全设置 Modal -->
+  <div class="modal fade" id="securityModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-shield-lock me-2 text-primary"></i>聚合接口安全设置</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-light border small text-muted mb-3">
+            为此中继服务的 <code>/api/torrents</code> 接口设置 API Key。开启后，Byte-Muse 必须在请求参数携带 <code>?token=...</code> 或 <code>X-API-Key</code> 请求头才能拉取结果，防止接口被局域网/公网未授权调用。
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="secEnabled">
+            <label class="form-check-label fw-bold" for="secEnabled">启用 API Key 保护</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">API Key 令牌</label>
+            <div class="input-group">
+              <input type="text" class="form-control font-monospace" id="secApiKey" placeholder="自定义或生成安全令牌">
+              <button class="btn btn-outline-secondary" type="button" onclick="generateRandomKey()"><i class="bi bi-shuffle me-1"></i>随机生成</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" onclick="saveSecuritySettings()">保存设置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let currentSources = [];
+    let appSettings = { api_key_enabled: false, api_key: "", sources: [] };
     const sourceModal = new bootstrap.Modal(document.getElementById('sourceModal'));
+    const securityModal = new bootstrap.Modal(document.getElementById('securityModal'));
 
-    async function loadSources() {
+    async function loadData() {
       try {
-        const resp = await fetch('/api/sources');
-        currentSources = await resp.json();
+        const resp = await fetch('/api/settings');
+        appSettings = await resp.json();
         renderSourcesTable();
         updateTestTargetOptions();
+        updateApiUrlDisplay();
       } catch (err) {
-        alert('加载 BT 源列表失败: ' + err);
+        alert('加载配置失败: ' + err);
       }
+    }
+
+    function updateApiUrlDisplay() {
+      const code = document.getElementById('apiUrlCode');
+      const badge = document.getElementById('authBadge');
+      let base = `${window.location.origin}/api/torrents?keyword=`;
+      if (appSettings.api_key_enabled && appSettings.api_key) {
+        base = `${window.location.origin}/api/torrents?token=${encodeURIComponent(appSettings.api_key)}&keyword=`;
+        badge.classList.remove('d-none');
+      } else {
+        badge.classList.add('d-none');
+      }
+      code.innerText = base;
+    }
+
+    function copyApiUrl() {
+      const text = document.getElementById('apiUrlCode').innerText;
+      navigator.clipboard.writeText(text).then(() => alert('已成功复制到剪贴板！'));
     }
 
     function renderSourcesTable() {
       const tbody = document.getElementById('sourcesTableBody');
       const activeCountBadge = document.getElementById('activeCountBadge');
-      const enabledCount = currentSources.filter(s => s.enabled).length;
-      activeCountBadge.innerText = `已启用 ${enabledCount} / ${currentSources.length} 个源`;
+      const sources = appSettings.sources || [];
+      const enabledCount = sources.filter(s => s.enabled).length;
+      activeCountBadge.innerText = `已启用 ${enabledCount} / ${sources.length} 个源`;
 
-      if (currentSources.length === 0) {
+      if (sources.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无配置任何 BT 源，点击上方添加</td></tr>';
         return;
       }
 
-      tbody.innerHTML = currentSources.map(s => `
+      tbody.innerHTML = sources.map(s => `
         <tr>
           <td>
             <div class="form-check form-switch m-0">
@@ -216,12 +278,38 @@
 
     function updateTestTargetOptions() {
       const select = document.getElementById('testTargetSource');
+      const sources = appSettings.sources || [];
       select.innerHTML = '<option value="all">⚡ 全部源聚合（去重测试）</option>' +
-        currentSources.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${s.method})</option>`).join('');
+        sources.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${s.method})</option>`).join('');
+    }
+
+    async function autoDetectName(force = false) {
+      const urlInput = document.getElementById('formUrl');
+      const nameInput = document.getElementById('formName');
+      const rawUrl = urlInput.value.trim();
+      if (!rawUrl) return;
+
+      if (!force && nameInput.value.trim() !== '') {
+        return; // 用户已输入且非强制探测时不覆盖
+      }
+
+      try {
+        const resp = await fetch('/api/detect-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: rawUrl })
+        });
+        const res = await resp.json();
+        if (res.name) {
+          nameInput.value = res.name;
+        }
+      } catch (e) {
+        console.log("Auto-detect failed:", e);
+      }
     }
 
     async function toggleSourceStatus(id, enabled) {
-      const src = currentSources.find(s => s.id === id);
+      const src = appSettings.sources.find(s => s.id === id);
       if (!src) return;
       src.enabled = enabled;
       await fetch(`/api/sources/${id}`, {
@@ -229,7 +317,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(src)
       });
-      loadSources();
+      loadData();
     }
 
     function openAddModal() {
@@ -246,7 +334,7 @@
     }
 
     function openEditModal(id) {
-      const s = currentSources.find(item => item.id === id);
+      const s = appSettings.sources.find(item => item.id === id);
       if (!s) return;
       document.getElementById('modalTitle').innerText = '编辑 BT 源';
       document.getElementById('formSourceId').value = s.id;
@@ -270,12 +358,11 @@
       const enabled = document.getElementById('formEnabled').checked;
       const headersStr = document.getElementById('formHeaders').value.trim();
 
-      if (!name || !url) {
-        alert('请完整填写源名称与请求 URL');
+      if (!url) {
+        alert('请填写请求 URL');
         return;
       }
 
-      // 前端快速防呆清洗
       let cleanUrl = url.trim();
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
         cleanUrl = 'http://' + cleanUrl;
@@ -287,7 +374,6 @@
         try {
           headers = JSON.parse(headersStr);
         } catch (e) {
-          // 如果用户不是输入的 JSON，而是直接输入了一串 token，则自动包装为 X-API-Key
           if (headersStr.indexOf(':') === -1) {
             headers = { "X-API-Key": headersStr.trim() };
           } else {
@@ -297,7 +383,8 @@
         }
       }
 
-      const payload = { name, url: cleanUrl, method, keyword_field, timeout, enabled, headers };
+      const finalName = name || cleanUrl.split('/')[2] || 'BT源';
+      const payload = { name: finalName, url: cleanUrl, method, keyword_field, timeout, enabled, headers };
 
       try {
         if (id) {
@@ -314,7 +401,7 @@
           });
         }
         sourceModal.hide();
-        loadSources();
+        loadData();
       } catch (err) {
         alert('保存失败: ' + err);
       }
@@ -324,9 +411,44 @@
       if (!confirm('确定要删除该 BT 源配置吗？')) return;
       try {
         await fetch(`/api/sources/${id}`, { method: 'DELETE' });
-        loadSources();
+        loadData();
       } catch (err) {
         alert('删除失败: ' + err);
+      }
+    }
+
+    function openSecurityModal() {
+      document.getElementById('secEnabled').checked = appSettings.api_key_enabled || false;
+      document.getElementById('secApiKey').value = appSettings.api_key || '';
+      securityModal.show();
+    }
+
+    function generateRandomKey() {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let key = 'bm_';
+      for (let i = 0; i < 24; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('secApiKey').value = key;
+    }
+
+    async function saveSecuritySettings() {
+      const enabled = document.getElementById('secEnabled').checked;
+      const key = document.getElementById('secApiKey').value.trim();
+      if (enabled && !key) {
+        alert('启用 API Key 保护时，必须填写或生成一个 API Key！');
+        return;
+      }
+      try {
+        await fetch('/api/security', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key_enabled: enabled, api_key: key })
+        });
+        securityModal.hide();
+        loadData();
+      } catch (err) {
+        alert('保存安全配置失败: ' + err);
       }
     }
 
@@ -354,12 +476,11 @@
         metricsDiv.classList.remove('d-none');
         resultPanel.classList.remove('d-none');
 
-        // 渲染耗时指标与状态
         metricsContent.innerHTML = res.details.map(d => `
           <span class="badge ${d.success ? 'bg-success' : 'bg-danger'} stat-badge">
             ${escapeHtml(d.name)}: ${d.status_code || 'Err'} (${d.latency_ms}ms) -> ${d.count}条
           </span>
-        `).join('') + `<span class="badge bg-primary stat-badge">最终去重聚合: ${res.data.length} 条</span>`;
+        `).join('') + `<span class="badge bg-primary stat-badge">智能去重聚合: ${res.data.length} 条</span>`;
 
         resultSummary.innerText = `共耗时: ${res.total_time_ms}ms | 结果数: ${res.data.length} 个种子`;
         jsonResult.innerText = JSON.stringify({ data: res.data }, null, 2);
@@ -377,8 +498,7 @@
     }
 
     window.onload = () => {
-      document.getElementById('apiUrlCode').innerText = `${window.location.origin}/api/torrents?keyword=`;
-      loadSources();
+      loadData();
     };
   </script>
 </body>
