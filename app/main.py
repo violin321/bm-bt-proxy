@@ -24,7 +24,7 @@ logger = logging.getLogger("bm-bt-proxy")
 app = FastAPI(title="BM-BT-Proxy", version="1.3.0")
 
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
-WEB_PASSWORD = ***"WEB_PASSWORD", "").strip()
+WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
 
 # Session token for cookie-based login
 AUTH_SESSION_TOKEN = secrets.token_hex(16)
