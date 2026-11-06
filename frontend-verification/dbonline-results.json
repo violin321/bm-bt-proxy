@@ -1,0 +1,201 @@
+{
+  "completed_at_utc": "2026-11-06T17:13:13.655049+00:00",
+  "version": "1.16.102",
+  "deployment": {
+    "deployed_at_utc": "2026-11-06T16:44:53.140279+00:00",
+    "image": "dbonline/db_online@sha256:da75ba3ee99d3d4360a78caa0edcb0ccd62ecb0c443fb87c365976e850186b5b",
+    "postgres_image": "postgres@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139",
+    "root": "/root/docker/db-online",
+    "url": "http://100.106.157.3:9090/",
+    "existing_containers_unchanged": true,
+    "postgres_host_port": false,
+    "web_tailnet_and_loopback_only": true
+  },
+  "containers": [
+    {
+      "name": "db_online",
+      "image_id": "sha256:58d3a386be3bf42c1cdcf4fa56144aec796034c9ecc6b43931d3e2c555a22e22",
+      "health": "healthy",
+      "oom": false,
+      "restart_count": 0,
+      "networks": [
+        "bm-bt-proxy-prod_default",
+        "db-online_database"
+      ]
+    },
+    {
+      "name": "db_online_postgres",
+      "image_id": "sha256:4278d7b1e3deb3193ddc803158f6532963f059fc25a2eefaee4b5a9e71741873",
+      "health": "healthy",
+      "oom": false,
+      "restart_count": 0,
+      "networks": [
+        "db-online_database"
+      ]
+    },
+    {
+      "name": "db_online_bt_adapter",
+      "image_id": "sha256:994a67ed607d49ae36a5c10c90110b12d8aaf7658f7c11d0e190339b60457bf4",
+      "health": "healthy",
+      "oom": false,
+      "restart_count": 0,
+      "networks": [
+        "bm-bt-proxy-prod_default"
+      ]
+    }
+  ],
+  "integration": {
+    "integrated_at_utc": "2026-11-06T16:59:31.939591+00:00",
+    "source_id": "a4d1d9ff",
+    "source_name": "DB Online (JavDB)",
+    "source_url": "http://db_online_bt_adapter:9091/api/torrents",
+    "single_count": 17,
+    "combined_count": 17,
+    "sources": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "count": 8,
+        "latency_ms": 1428
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "count": 6,
+        "latency_ms": 2946
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "success": true,
+        "status_code": 200,
+        "count": 17,
+        "latency_ms": 19
+      }
+    ],
+    "existing_source_settings_unchanged": true,
+    "existing_api_key_unchanged": true,
+    "bm_bt_not_restarted": true,
+    "api_aliases": true,
+    "three_source_stats": true,
+    "sqlite": "ok",
+    "revalidated_at_utc": "2026-11-06T17:08:51.206180+00:00",
+    "adapter_cases": [
+      {
+        "keyword": "SSIS-586",
+        "count": 17,
+        "success": true,
+        "latency_ms": 26
+      },
+      {
+        "keyword": "ssis586",
+        "count": 17,
+        "success": true,
+        "latency_ms": 20
+      },
+      {
+        "keyword": "IPX-451",
+        "count": 18,
+        "success": true,
+        "latency_ms": 2893
+      },
+      {
+        "keyword": "ZZZ-9999999",
+        "count": 0,
+        "success": true,
+        "latency_ms": 96
+      },
+      {
+        "keyword": "三上悠亚",
+        "count": 0,
+        "success": true,
+        "latency_ms": 7405
+      }
+    ],
+    "source_enabled": true,
+    "byte_muse_integer_ids": true
+  },
+  "persistence": {
+    "backup": "/root/docker/db-online/backup-20261106T170610Z",
+    "postgres_restart": true,
+    "db_online_recreated": true,
+    "db_online_auth_persisted": true,
+    "video_count": 1,
+    "adapter_tests": 11,
+    "byte_muse_schema_items": 17,
+    "original_services_unchanged": true
+  },
+  "following": {
+    "upstream_authorization_empty": true,
+    "following_success": true,
+    "count": 2
+  },
+  "category_count": 15,
+  "bm_browser": {
+    "target": "dbonline",
+    "checks": [
+      "actual deployed login, overview and three configured sources",
+      "all four actual workspaces have no overflow at 1440, 768, 390 and 360",
+      "mobile actual source editor opens with deletion available and cancels without changes",
+      "zero uncaught JavaScript errors"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false
+  },
+  "byte_muse_browser": {
+    "version": "1.32.0",
+    "cases": [
+      {
+        "input": "SSIS-586",
+        "browserRequestQuery": "SSIS-586",
+        "status": 200,
+        "apiCount": 17,
+        "renderedDownloadButtons": 17,
+        "resultSignature": "48dc7286ada9d5ba"
+      },
+      {
+        "input": "ssis586",
+        "browserRequestQuery": "ssis586",
+        "status": 200,
+        "apiCount": 17,
+        "renderedDownloadButtons": 17,
+        "resultSignature": "48dc7286ada9d5ba"
+      }
+    ],
+    "pageErrors": [],
+    "realBrowser": true
+  },
+  "consumer_aggregate_requests": [
+    {
+      "id": 70,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 17,
+      "target_count": 3,
+      "success_count": 3
+    },
+    {
+      "id": 71,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 17,
+      "target_count": 3,
+      "success_count": 3
+    }
+  ],
+  "adapter_sha256": "fe9f7b226f4dac9dfb28ebba5a559e513d391a6fe7bdd2b2d25f4206b6eb8e23",
+  "compose_sha256": "a71b4c906dc553929c2f0c4dce15132eb69db593e18a2f583b27396bda8bf85f",
+  "credentials_included": false,
+  "limitations": {
+    "generic_search_movie_limit": 3,
+    "generic_actor_query_fixture_count": 0,
+    "physical_phone": false,
+    "no_download_or_subscription_actions": true,
+    "adapter_published_image": false
+  }
+}

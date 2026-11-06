@@ -84,3 +84,7 @@ services:
 浏览器访问 `http://<IP>:8000`：
 1. **源列表**：开关启用/禁用、编辑 URL、修改 GET/POST 方法、超时与请求头。
 2. **测试搜索**：选择单源或全源，输入测试关键词查看各源响应时间及合并返回的 JSON。
+
+## DB Online 数据源
+
+可单独部署 db_online、PostgreSQL 和 BT 适配器，将影片详情中的磁力／ED2K 接入聚合。部署文件与使用范围见 [部署说明](deploy/db-online/README.md)，实际三源及 Byte-Muse 验收见 [接入报告](docs/DBONLINE-20261107.md)。这项接入不需要更新 BM-BT 主程序。

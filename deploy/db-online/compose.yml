@@ -1,0 +1,100 @@
+services:
+  bt-adapter:
+    build: ./adapter
+    image: bm-db-online-adapter:0.1.0
+    container_name: db_online_bt_adapter
+    restart: unless-stopped
+    environment:
+      DBONLINE_URL: http://db_online:9090
+      DBONLINE_API_KEY: ${DBONLINE_API_KEY:?set the local db_online API key}
+    depends_on:
+      db_online:
+        condition: service_healthy
+    networks:
+      - bm-bt
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+      - /data:size=1m
+    mem_limit: 192m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  db_online:
+    image: ${DBONLINE_IMAGE:?set a verified image digest}
+    container_name: db_online
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DBONLINE_PORT:-9090}:9090"
+      - "${TAILSCALE_IP:?set the server Tailscale address}:${DBONLINE_PORT:-9090}:9090"
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    environment:
+      TZ: Asia/Shanghai
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: db_online
+      POSTGRES_PASSWORD: ${DBONLINE_POSTGRES_PASSWORD:?set a private database password}
+      POSTGRES_NAME: db_online
+      POSTGRES_SSLMODE: disable
+      GOMEMLIMIT: 512MiB
+      DBONLINE_HEALTH_API_KEY: ${DBONLINE_API_KEY:?set the local db_online API key}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --header=\"X-API-Key: $$DBONLINE_HEALTH_API_KEY\" -O /dev/null http://127.0.0.1:9090/api/ready"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - database
+      - bm-bt
+    mem_limit: 768m
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postgres:
+    image: ${DBONLINE_POSTGRES_IMAGE:?set a verified postgres 16 image digest}
+    container_name: db_online_postgres
+    restart: unless-stopped
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    environment:
+      TZ: Asia/Shanghai
+      POSTGRES_USER: db_online
+      POSTGRES_PASSWORD: ${DBONLINE_POSTGRES_PASSWORD:?set a private database password}
+      POSTGRES_DB: db_online
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_online -d db_online"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - database
+    mem_limit: 384m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  database:
+    internal: true
+  bm-bt:
+    external: true
+    name: ${BM_BT_NETWORK:-bm-bt-proxy-prod_default}

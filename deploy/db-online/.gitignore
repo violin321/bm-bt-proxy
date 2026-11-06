@@ -1,0 +1,8 @@
+.env
+data/
+cache/
+logs/
+postgres_data/
+backup-*/
+access*.json
+*.dump
