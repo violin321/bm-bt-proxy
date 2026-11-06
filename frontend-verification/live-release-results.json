@@ -1,0 +1,141 @@
+{
+  "production": {
+    "deployed_at_utc": "2026-11-06T13:07:17.446819+00:00",
+    "version": "1.4.0",
+    "commit": "e7b8371",
+    "image": "bm-bt-proxy:1.4.0-e7b8371",
+    "image_id": "sha256:44b14fe43a7da53a3af3bbf0abbdf5846afd2f0369ad0fc4f941630755a4ee96",
+    "old_image_id": "sha256:2dbe9471ff0d16324c43d7619e0e8b8f5a9bf28b0737e97baddfd13f63af51e6",
+    "backup": "/root/docker/bm-bt-proxy-releases/1.4.0-e7b8371/backup-before-production-20261106T130640Z",
+    "config_bytes_unchanged": true,
+    "custom_env_unchanged": true,
+    "old_cookie_valid": true,
+    "networks": [
+      "avdb_default",
+      "bm-bt-proxy-prod_default"
+    ],
+    "real_sources": [
+      {
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 94,
+        "count": 2
+      },
+      {
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1259,
+        "count": 6
+      }
+    ],
+    "unique_results": 8,
+    "api_aliases": true,
+    "auth": true,
+    "sqlite": "ok",
+    "consumer_network_request": true,
+    "initial_stats": {
+      "requests": 3,
+      "complete": 3,
+      "partial": 0,
+      "failed": 0,
+      "raw_count": 24,
+      "unique_count": 24,
+      "duplicate_count": 0,
+      "success_rate": 100.0,
+      "average_ms": 995,
+      "p95_ms": 1306
+    },
+    "browser": true,
+    "physical_phone": false,
+    "production_persistence": true,
+    "old_cookie_after_restart": true,
+    "retained_requests": 4,
+    "container_healthy": true,
+    "restart_count": 0,
+    "oom_killed": false,
+    "browser_widths": [
+      1440,
+      768,
+      390,
+      360
+    ],
+    "public_version_verified": true,
+    "public_unauthenticated_root_redirects_login": true,
+    "staging_removed": true,
+    "completed_at_utc": "2026-11-06T13:09:58.677516+00:00"
+  },
+  "stage": {
+    "real_sources": [
+      {
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 95,
+        "count": 2
+      },
+      {
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 961,
+        "count": 6
+      }
+    ],
+    "raw_count": 8,
+    "unique_count": 8,
+    "poster_metadata_count": 2,
+    "poster_checks": [
+      {
+        "status": 403,
+        "content_type": "text/html"
+      },
+      {
+        "status": 200,
+        "content_type": "image/jpeg"
+      }
+    ],
+    "summary": {
+      "requests": 12,
+      "complete": 8,
+      "partial": 2,
+      "failed": 2,
+      "raw_count": 72,
+      "unique_count": 72,
+      "duplicate_count": 0,
+      "success_rate": 66.7,
+      "average_ms": 2134,
+      "p95_ms": 10749
+    },
+    "checks": [
+      "real stage login and unauthenticated settings/stats protection",
+      "container version and all shipped static assets",
+      "both real sources respond and aggregation has no duplicate dedup keys",
+      "real poster fields preserved; media status recorded without fabricating images",
+      "real business GET/POST and both endpoint aliases",
+      "controlled upstream 401, timeout, complete failure and partial success are classified correctly",
+      "real API Key enforcement and query/header compatibility",
+      "stage settings fully restored; no production configuration mutation",
+      "actual persisted statistics, outcomes and query validation"
+    ]
+  },
+  "browser": {
+    "target": "production",
+    "checks": [
+      "actual deployed login, overview and two configured sources",
+      "all four actual workspaces have no overflow at 1440, 768, 390 and 360",
+      "mobile actual source editor opens with deletion available and cancels without changes",
+      "zero uncaught JavaScript errors"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false
+  },
+  "image_archive": {
+    "file": "application-images.tar",
+    "bytes": 157900800,
+    "sha256": "6897d0481b8e77c7764d09544cbcef69a4356244468f361089e37ecb82bdc25e"
+  },
+  "source_archive_sha256": "e9cf7a58a7cb6a333a679bedf14104eb6d9c44c18e621037561b5615d5f52f76"
+}
