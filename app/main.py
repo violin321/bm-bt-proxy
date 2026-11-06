@@ -4,6 +4,8 @@ import time
 import re
 import os
 import secrets
+import hmac
+import hashlib
 from urllib.parse import urlparse
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Query, HTTPException, Body, Depends, Header, Request, status, Response, Cookie
@@ -21,13 +23,20 @@ from app.config import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
 
-app = FastAPI(title="BM-BT-Proxy", version="1.3.0")
+app = FastAPI(title="BM-BT-Proxy", version="1.3.1")
 
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
 WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
 
-# Session token for cookie-based login
-AUTH_SESSION_TOKEN = secrets.token_hex(16)
+# 静态固定密钥，保证容器重启、多工作进程时 Cookie 依然长期有效，绝不失效
+SECRET_SIGN_KEY = os.getenv("SECRET_KEY", "bm-bt-proxy-secure-sign-key-v1")
+
+
+def generate_cookie_token() -> str:
+    """生成与账号密码绑定的签名 Token"""
+    h = hmac.new(SECRET_SIGN_KEY.encode(), f"{WEB_USERNAME}:{WEB_PASSWORD}".encode(), hashlib.sha256)
+    return h.hexdigest()
+
 
 settings: AppSettings = load_settings()
 
@@ -37,7 +46,10 @@ def is_authenticated(request: Request) -> bool:
     if not WEB_USERNAME or not WEB_PASSWORD:
         return True
     session_cookie = request.cookies.get("bm_session")
-    return session_cookie == AUTH_SESSION_TOKEN
+    if not session_cookie:
+        return False
+    expected = generate_cookie_token()
+    return secrets.compare_digest(session_cookie, expected)
 
 
 def require_auth(request: Request):
@@ -92,12 +104,14 @@ async def login_api(response: Response, body: Dict[str, Any] = Body(...)):
         return {"status": "ok"}
 
     if secrets.compare_digest(username, WEB_USERNAME) and secrets.compare_digest(password, WEB_PASSWORD):
+        token = generate_cookie_token()
         response.set_cookie(
             key="bm_session",
-            value=AUTH_SESSION_TOKEN,
-            httponly=True,
+            value=token,
+            path="/",
+            httponly=False,  # 允许跨页面携带
             samesite="lax",
-            max_age=86400 * 30,  # 30天免登录
+            max_age=86400 * 30,  # 30天有效
         )
         return {"status": "ok"}
 
@@ -106,7 +120,7 @@ async def login_api(response: Response, body: Dict[str, Any] = Body(...)):
 
 @app.post("/api/logout")
 async def logout_api(response: Response):
-    response.delete_cookie("bm_session")
+    response.delete_cookie("bm_session", path="/")
     return {"status": "ok"}
 
 
