@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T11:59:20.206Z",
+  "generatedAt": "2026-11-06T16:00:49.276Z",
   "checks": [
     "real login rejects incorrect password and keeps the error visible",
     "login responsive at 360 / 390 / 768 / 1440 and password visibility",
