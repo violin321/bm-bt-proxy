@@ -40,6 +40,21 @@ docker compose -p db-online --env-file .env ps
 
 外部客户端继续使用原 BM-BT 地址和 API Key，不需要访问适配器。适配器内部使用独立的 db_online 本地 API Key。
 
+### 扩展磁链库与 Nyaa
+
+适配器 `0.2.0` 增加两个独立入口，可按需分别添加 BM-BT 源，其他字段与上表相同：
+
+| 名称 | URL |
+|---|---|
+| `DB Online (公共扩展库)` | `http://db_online_bt_adapter:9091/api/torrents/custom` |
+| `DB Online (Nyaa)` | `http://db_online_bt_adapter:9091/api/torrents/nyaa` |
+
+`custom` 调用 db_online 的 `/api/external-magnets/custom/{code}`，使用其已启用的自定义库及请求头配置，不在 BM-BT 重复存储密钥。`nyaa` 调用 `/api/external-magnets/nyaa/{code}`；该 BM-BT 源开关独立控制是否查询 Nyaa，停用时也请在 BM-BT 关闭对应源。
+
+扩展库与 JavDB 原源分别报告成功、零条、502 或 504，公共库故障不会丢弃原源的结果。常见番号规范化后直接查询扩展接口，无需先在 JavDB 找到影片；FC2、数字前缀及特殊后缀也支持直接查询。普通文字仍最多从搜索第一页取三部影片再查询扩展库。仅启用 DB Online 设置中的扩展库不会自动为旧版适配器建立此通道。
+
+扩展接口中的 `title`、`download_url`、`post_time` 和布尔标记转换成 Byte-Muse 所需字段；重复磁力／ED2K 使用与原源一致的稳定整数 ID。BM-BT 继续按哈希跨源去重；扩展库的返回条数不代表新增唯一资源数。多个分支共享原有的两查询并发限额，整次含排队最多 22 秒。
+
 常见字母前缀番号直接调用单片详情接口，例如 `SSIS-586`、`ssis586` 都查 `SSIS-586`；不会把数字前缀、FC2 或特殊后缀强行改成普通番号。普通文本和特殊格式使用原文搜索，最多展开第一页前三部影片的磁力／ED2K；这不是完整的演员作品检索。适配接口的 `meta.limited` 标记截断，当前 BM-BT 页面不会展示该额外字段。空关键词不扫描全部目录。
 
 上游单次请求超时为 10 秒，整个适配查询含排队最多 22 秒，同时处理最多两个查询。鉴权失败、非 JSON、无效结构和部分影片详情失败返回 502；超时返回 504，不伪装成成功零条。已确认的「未找到影片」返回空列表。资源按 BTIH／ED2K 哈希去重，并提供 Byte-Muse 必需的整数 ID、大小、标题与下载链接；ID 保持在 JavaScript 安全整数范围。
@@ -51,7 +66,7 @@ following 和类别列表可用于 db_online 自己的发现／筛选页面。�
 适配器协议回归：
 
 ```sh
-python deploy/db-online/adapter/test_adapter.py
+python -m unittest discover -s deploy/db-online/adapter -p 'test_*.py' -v
 ```
 
 需使用已安装 BM-BT 依赖的 Python 环境。测试涵盖 Byte-Muse 必需字段、编号、资源转换、去重、请求上限、未找到与鉴权错误的区分、部分失败、超时和对外错误脱敏。
