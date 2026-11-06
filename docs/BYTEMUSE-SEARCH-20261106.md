@@ -73,4 +73,3 @@ docker compose -p bytemuse-bm-bt-test -f /root/docker/bytemuse-bm-bt-test-202611
 14 次均为两个源成功响应的 complete 记录；零条并不表示请求失败，也不能用来证明两种特殊格式等价。只有常见字母前缀的已测写法证明了规范化等价，数字前缀、空格和后缀没有同等保证。本次没有引入聚合层关键词改写。
 
 结构化证据：`frontend-verification/bytemuse-expanded-results.json`。发布前重新执行统计单测 8 项、后端 9 组、原功能浏览器 26 项、概览浏览器 9 项，均通过。前端检查使用隔离本地配置，不触碰生产源配置。
-
