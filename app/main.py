@@ -1,12 +1,12 @@
 import asyncio
 import logging
 import time
+import re
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Query, HTTPException, Body
 from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 import httpx
-from app.config import load_sources, save_sources, UpstreamSource
+from app.config import load_sources, save_sources, clean_url, clean_headers, UpstreamSource
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
@@ -36,6 +36,8 @@ async def get_sources():
 @app.post("/api/sources")
 async def add_source(source_data: Dict[str, Any] = Body(...)):
     global sources
+    source_data["url"] = clean_url(source_data.get("url", ""))
+    source_data["headers"] = clean_headers(source_data.get("headers", {}))
     new_source = UpstreamSource(**source_data)
     sources.append(new_source)
     save_sources(sources)
@@ -47,6 +49,8 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
     global sources
     for i, s in enumerate(sources):
         if s.id == source_id:
+            source_data["url"] = clean_url(source_data.get("url", ""))
+            source_data["headers"] = clean_headers(source_data.get("headers", {}))
             updated = UpstreamSource(**{**source_data, "id": source_id})
             sources[i] = updated
             save_sources(sources)
@@ -60,6 +64,32 @@ async def delete_source(source_id: str):
     sources = [s for s in sources if s.id != source_id]
     save_sources(sources)
     return {"status": "ok"}
+
+
+def extract_dedup_key(item: Dict[str, Any]) -> str:
+    """
+    智能去重键提取：
+    1. 优先提取标准 BTIH (BitTorrent Info Hash)，忽略 tracker / dn 参数，大小写统一大写；
+    2. 次选 ed2k / http 下载链接；
+    3. 兜底使用规范化标题（去除前后空格和特殊标点）。
+    """
+    if not isinstance(item, dict):
+        return ""
+
+    link = item.get("magnet") or item.get("download_url") or ""
+    if link:
+        # 正则提取 btih 哈希（支持 40 位 HEX 或 32 位 Base32）
+        m = re.search(r"urn:btih:([a-zA-Z0-9]{32,40})", link, re.IGNORECASE)
+        if m:
+            return f"btih:{m.group(1).upper()}"
+        # ed2k 哈希
+        m_ed2k = re.search(r"\|file\|[^|]+\|[^|]+\|([a-fA-F0-9]{32})\|", link)
+        if m_ed2k:
+            return f"ed2k:{m_ed2k.group(1).upper()}"
+        return link.strip()
+
+    title = item.get("title") or item.get("name") or ""
+    return f"title:{title.strip().lower()}" if title else ""
 
 
 async def fetch_single_source(client: httpx.AsyncClient, source: UpstreamSource, keyword: str) -> Dict[str, Any]:
@@ -135,13 +165,11 @@ async def test_search(body: Dict[str, Any] = Body(...)):
             })
             all_torrents.extend(res["items"])
 
-    # Deduplicate
+    # 智能去重
     seen = set()
     deduped = []
     for item in all_torrents:
-        if not isinstance(item, dict):
-            continue
-        key = item.get("magnet") or item.get("download_url") or item.get("name")
+        key = extract_dedup_key(item)
         if key:
             if key not in seen:
                 seen.add(key)
@@ -173,9 +201,7 @@ async def aggregate_torrents(keyword: Optional[str] = Query(default="")):
     seen = set()
     deduped = []
     for item in all_torrents:
-        if not isinstance(item, dict):
-            continue
-        key = item.get("magnet") or item.get("download_url") or item.get("name")
+        key = extract_dedup_key(item)
         if key:
             if key not in seen:
                 seen.add(key)
