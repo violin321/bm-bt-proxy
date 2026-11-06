@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BM-BT-Proxy 控制台</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .card { border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .table td, .table th { vertical-align: middle; }
+    .badge-method-get { background-color: #0d6efd; }
+    .badge-method-post { background-color: #198754; }
+    .result-card { max-height: 480px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
+    .stat-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+  </style>
+</head>
+<body class="py-4">
+  <div class="container" style="max-width: 1080px;">
+    <!-- 顶栏标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold mb-1"><i class="bi bi-diagram-3-fill text-primary me-2"></i>BM-BT-Proxy</h3>
+        <p class="text-muted small mb-0">Byte-Muse 多上游 BT 异步聚合中继控制台</p>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i>添加 BT 源</button>
+      </div>
+    </div>
+
+    <!-- 聚合接口调用提示 -->
+    <div class="alert alert-info py-2 px-3 small d-flex justify-content-between align-items-center">
+      <div>
+        <strong><i class="bi bi-info-circle me-1"></i>Byte-Muse 聚合接口地址：</strong>
+        <code class="text-dark bg-white px-2 py-1 rounded" id="apiUrlCode">http://&lt;你的IP或容器名&gt;:8000/api/torrents?keyword=</code>
+      </div>
+      <span class="badge bg-success" id="activeCountBadge">加载中...</span>
+    </div>
+
+    <!-- BT 源管理卡片 -->
+    <div class="card mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-server me-2"></i>已配置的 BT 源</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadSources()"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 50px;">状态</th>
+                <th>源名称</th>
+                <th>请求方式</th>
+                <th>上游 URL</th>
+                <th>搜索字段</th>
+                <th>超时</th>
+                <th style="width: 150px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="sourcesTableBody">
+              <tr><td colspan="7" class="text-center text-muted py-4">正在加载数据...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 在线联调与测试搜索卡片 -->
+    <div class="card mb-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>在线联调与即时测试</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-7">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="testKeyword" placeholder="输入测试关键词（如番号、片名、发布组）" value="FC2">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="testTargetSource">
+              <option value="all">⚡ 全部源聚合（去重测试）</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-success" id="testSearchBtn" onclick="runTestSearch()"><i class="bi bi-play-fill me-1"></i>执行测试</button>
+          </div>
+        </div>
+
+        <!-- 测试运行状态指标 -->
+        <div id="testMetrics" class="mt-3 d-none">
+          <div class="p-2 border rounded bg-light d-flex flex-wrap gap-2 align-items-center small" id="metricsContent"></div>
+        </div>
+
+        <!-- 测试返回 JSON / 结果面板 -->
+        <div id="testResultPanel" class="mt-3 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-semibold text-muted">返回聚合结果预览：</span>
+            <span class="small text-muted" id="resultSummary"></span>
+          </div>
+          <div class="result-card p-3 border rounded bg-dark text-light" id="jsonResult"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑 Modal -->
+  <div class="modal fade" id="sourceModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">添加 BT 源</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="sourceForm">
+            <input type="hidden" id="formSourceId">
+            <div class="mb-3">
+              <label class="form-label">源名称</label>
+              <input type="text" class="form-control" id="formName" required placeholder="如：我的本地主站、备用源">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">上游请求 URL</label>
+              <input type="text" class="form-control" id="formUrl" required placeholder="http://192.168.1.30:6969/api/v1/articles/torrents">
+              <div class="form-text">GET 方式时会自动拼接参数；POST 方式会发 JSON 请求体。</div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">请求方式</label>
+                <select class="form-select" id="formMethod">
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">关键词参数名</label>
+                <input type="text" class="form-control" id="formKeywordField" value="keyword" placeholder="keyword">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">超时时间 (秒)</label>
+                <input type="number" step="0.5" class="form-control" id="formTimeout" value="10.0">
+              </div>
+              <div class="col-6">
+                <label class="form-label">是否启用</label>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="formEnabled" checked>
+                  <label class="form-check-label" for="formEnabled">启用此源</label>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">自定义请求头 (Headers JSON)</label>
+              <textarea class="form-control font-monospace" id="formHeaders" rows="3" placeholder='{"X-API-Key": "your_token"}'></textarea>
+              <div class="form-text">可选，填合法 JSON，如需特定 Header / 鉴权填此处。</div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" onclick="saveSourceForm()">保存配置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentSources = [];
+    const sourceModal = new bootstrap.Modal(document.getElementById('sourceModal'));
+
+    async function loadSources() {
+      try {
+        const resp = await fetch('/api/sources');
+        currentSources = await resp.json();
+        renderSourcesTable();
+        updateTestTargetOptions();
+      } catch (err) {
+        alert('加载 BT 源列表失败: ' + err);
+      }
+    }
+
+    function renderSourcesTable() {
+      const tbody = document.getElementById('sourcesTableBody');
+      const activeCountBadge = document.getElementById('activeCountBadge');
+      const enabledCount = currentSources.filter(s => s.enabled).length;
+      activeCountBadge.innerText = `已启用 ${enabledCount} / ${currentSources.length} 个源`;
+
+      if (currentSources.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无配置任何 BT 源，点击上方添加</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentSources.map(s => `
+        <tr>
+          <td>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSourceStatus('${s.id}', this.checked)">
+            </div>
+          </td>
+          <td class="fw-bold">${escapeHtml(s.name)}</td>
+          <td><span class="badge ${s.method === 'POST' ? 'badge-method-post' : 'badge-method-get'}">${s.method}</span></td>
+          <td><code class="text-truncate d-inline-block text-dark" style="max-width: 280px;" title="${escapeHtml(s.url)}">${escapeHtml(s.url)}</code></td>
+          <td><span class="badge bg-secondary">${escapeHtml(s.keyword_field)}</span></td>
+          <td>${s.timeout}s</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="openEditModal('${s.id}')"><i class="bi bi-pencil"></i> 编辑</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteSource('${s.id}')"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateTestTargetOptions() {
+      const select = document.getElementById('testTargetSource');
+      select.innerHTML = '<option value="all">⚡ 全部源聚合（去重测试）</option>' +
+        currentSources.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${s.method})</option>`).join('');
+    }
+
+    async function toggleSourceStatus(id, enabled) {
+      const src = currentSources.find(s => s.id === id);
+      if (!src) return;
+      src.enabled = enabled;
+      await fetch(`/api/sources/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(src)
+      });
+      loadSources();
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').innerText = '添加 BT 源';
+      document.getElementById('formSourceId').value = '';
+      document.getElementById('formName').value = '';
+      document.getElementById('formUrl').value = '';
+      document.getElementById('formMethod').value = 'GET';
+      document.getElementById('formKeywordField').value = 'keyword';
+      document.getElementById('formTimeout').value = '10.0';
+      document.getElementById('formEnabled').checked = true;
+      document.getElementById('formHeaders').value = '';
+      sourceModal.show();
+    }
+
+    function openEditModal(id) {
+      const s = currentSources.find(item => item.id === id);
+      if (!s) return;
+      document.getElementById('modalTitle').innerText = '编辑 BT 源';
+      document.getElementById('formSourceId').value = s.id;
+      document.getElementById('formName').value = s.name;
+      document.getElementById('formUrl').value = s.url;
+      document.getElementById('formMethod').value = s.method;
+      document.getElementById('formKeywordField').value = s.keyword_field;
+      document.getElementById('formTimeout').value = s.timeout;
+      document.getElementById('formEnabled').checked = s.enabled;
+      document.getElementById('formHeaders').value = Object.keys(s.headers || {}).length ? JSON.stringify(s.headers, null, 2) : '';
+      sourceModal.show();
+    }
+
+    async function saveSourceForm() {
+      const id = document.getElementById('formSourceId').value;
+      const name = document.getElementById('formName').value.trim();
+      const url = document.getElementById('formUrl').value.trim();
+      const method = document.getElementById('formMethod').value;
+      const keyword_field = document.getElementById('formKeywordField').value.trim() || 'keyword';
+      const timeout = parseFloat(document.getElementById('formTimeout').value) || 10.0;
+      const enabled = document.getElementById('formEnabled').checked;
+      const headersStr = document.getElementById('formHeaders').value.trim();
+
+      if (!name || !url) {
+        alert('请完整填写源名称与请求 URL');
+        return;
+      }
+
+      let headers = {};
+      if (headersStr) {
+        try {
+          headers = JSON.parse(headersStr);
+        } catch (e) {
+          alert('Headers JSON 格式不合法，请检查！');
+          return;
+        }
+      }
+
+      const payload = { name, url, method, keyword_field, timeout, enabled, headers };
+
+      try {
+        if (id) {
+          await fetch(`/api/sources/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch('/api/sources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+        sourceModal.hide();
+        loadSources();
+      } catch (err) {
+        alert('保存失败: ' + err);
+      }
+    }
+
+    async function deleteSource(id) {
+      if (!confirm('确定要删除该 BT 源配置吗？')) return;
+      try {
+        await fetch(`/api/sources/${id}`, { method: 'DELETE' });
+        loadSources();
+      } catch (err) {
+        alert('删除失败: ' + err);
+      }
+    }
+
+    async function runTestSearch() {
+      const keyword = document.getElementById('testKeyword').value.trim();
+      const target = document.getElementById('testTargetSource').value;
+      const btn = document.getElementById('testSearchBtn');
+      const metricsDiv = document.getElementById('testMetrics');
+      const metricsContent = document.getElementById('metricsContent');
+      const resultPanel = document.getElementById('testResultPanel');
+      const jsonResult = document.getElementById('jsonResult');
+      const resultSummary = document.getElementById('resultSummary');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>测试中...';
+
+      try {
+        const resp = await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword, source_id: target })
+        });
+        const res = await resp.json();
+
+        metricsDiv.classList.remove('d-none');
+        resultPanel.classList.remove('d-none');
+
+        // 渲染耗时指标与状态
+        metricsContent.innerHTML = res.details.map(d => `
+          <span class="badge ${d.success ? 'bg-success' : 'bg-danger'} stat-badge">
+            ${escapeHtml(d.name)}: ${d.status_code || 'Err'} (${d.latency_ms}ms) -> ${d.count}条
+          </span>
+        `).join('') + `<span class="badge bg-primary stat-badge">最终去重聚合: ${res.data.length} 条</span>`;
+
+        resultSummary.innerText = `共耗时: ${res.total_time_ms}ms | 结果数: ${res.data.length} 个种子`;
+        jsonResult.innerText = JSON.stringify({ data: res.data }, null, 2);
+      } catch (err) {
+        alert('测试请求失败: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>执行测试';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.onload = () => {
+      document.getElementById('apiUrlCode').innerText = `${window.location.origin}/api/torrents?keyword=`;
+      loadSources();
+    };
+  </script>
+</body>
+</html>
