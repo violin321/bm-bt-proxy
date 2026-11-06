@@ -6,9 +6,8 @@ import os
 import secrets
 from urllib.parse import urlparse
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, Query, HTTPException, Body, Depends, Header, Request, status
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Query, HTTPException, Body, Depends, Header, Request, status, Response, Cookie
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 import httpx
 from app.config import (
     load_settings,
@@ -22,41 +21,37 @@ from app.config import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
 
-app = FastAPI(title="BM-BT-Proxy", version="1.2.0")
+app = FastAPI(title="BM-BT-Proxy", version="1.3.0")
 
-# HTTP Basic Auth support (via env vars)
-security = HTTPBasic(auto_error=False)
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
-WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
+WEB_PASSWORD = ***"WEB_PASSWORD", "").strip()
+
+# Session token for cookie-based login
+AUTH_SESSION_TOKEN = secrets.token_hex(16)
 
 settings: AppSettings = load_settings()
 
 
-def verify_web_auth(credentials: Optional[HTTPBasicCredentials] = Depends(security)):
-    """如果配置了 WEB_USERNAME 和 WEB_PASSWORD，则启用 Basic Auth 鉴权"""
+def is_authenticated(request: Request) -> bool:
+    """检查是否已通过 Cookie 登录"""
     if not WEB_USERNAME or not WEB_PASSWORD:
-        return True  # 未设置账号密码，免密通行
+        return True
+    session_cookie = request.cookies.get("bm_session")
+    return session_cookie == AUTH_SESSION_TOKEN
 
-    if not credentials:
+
+def require_auth(request: Request):
+    """API 路由认证依赖"""
+    if not is_authenticated(request):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-
-    is_user_ok = secrets.compare_digest(credentials.username, WEB_USERNAME)
-    is_pass_ok = secrets.compare_digest(credentials.password, WEB_PASSWORD)
-    if not (is_user_ok and is_pass_ok):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
+            detail="请先登录管理控制台",
         )
     return True
 
 
 def verify_api_key(token: Optional[str] = Query(default=None), x_api_key: Optional[str] = Header(default=None)):
-    """校验 Byte-Muse 访问 /api/torrents 时的 API Key"""
+    """Byte-Muse 访问 /api/torrents 时的 API Key 鉴权"""
     if not settings.api_key_enabled or not settings.api_key:
         return True
 
@@ -73,20 +68,61 @@ def verify_api_key(token: Optional[str] = Query(default=None), x_api_key: Option
 async def startup_event():
     global settings
     settings = load_settings()
-    logger.info(f"Initialized with {len(settings.sources)} sources (API Key enabled: {settings.api_key_enabled})")
+    logger.info(f"Initialized with {len(settings.sources)} sources")
 
 
-@app.get("/", response_class=HTMLResponse, dependencies=[Depends(verify_web_auth)])
-async def serve_index():
+@app.get("/favicon.svg")
+async def get_favicon():
+    return FileResponse("app/static/favicon.svg", media_type="image/svg+xml")
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    if is_authenticated(request):
+        return RedirectResponse(url="/")
+    return FileResponse("app/static/login.html")
+
+
+@app.post("/api/login")
+async def login_api(response: Response, body: Dict[str, Any] = Body(...)):
+    username = body.get("username", "").strip()
+    password = body.get("password", "").strip()
+
+    if not WEB_USERNAME or not WEB_PASSWORD:
+        return {"status": "ok"}
+
+    if secrets.compare_digest(username, WEB_USERNAME) and secrets.compare_digest(password, WEB_PASSWORD):
+        response.set_cookie(
+            key="bm_session",
+            value=AUTH_SESSION_TOKEN,
+            httponly=True,
+            samesite="lax",
+            max_age=86400 * 30,  # 30天免登录
+        )
+        return {"status": "ok"}
+
+    raise HTTPException(status_code=400, detail="用户名或密码不正确")
+
+
+@app.post("/api/logout")
+async def logout_api(response: Response):
+    response.delete_cookie("bm_session")
+    return {"status": "ok"}
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/login")
     return FileResponse("app/static/index.html")
 
 
-@app.get("/api/settings", dependencies=[Depends(verify_web_auth)])
+@app.get("/api/settings", dependencies=[Depends(require_auth)])
 async def get_settings():
     return settings.model_dump()
 
 
-@app.post("/api/security", dependencies=[Depends(verify_web_auth)])
+@app.post("/api/security", dependencies=[Depends(require_auth)])
 async def update_security(body: Dict[str, Any] = Body(...)):
     global settings
     settings.api_key_enabled = bool(body.get("api_key_enabled", False))
@@ -95,13 +131,12 @@ async def update_security(body: Dict[str, Any] = Body(...)):
     return {"status": "ok", "api_key_enabled": settings.api_key_enabled, "api_key": settings.api_key}
 
 
-@app.post("/api/detect-name", dependencies=[Depends(verify_web_auth)])
+@app.post("/api/detect-name", dependencies=[Depends(require_auth)])
 async def detect_name(body: Dict[str, Any] = Body(...)):
     url = clean_url(body.get("url", ""))
     if not url:
         return {"name": ""}
 
-    # 1. 尝试从 URL 嗅探页面 HTML Title
     parsed = urlparse(url)
     base_url = f"{parsed.scheme}://{parsed.netloc}"
     try:
@@ -116,17 +151,16 @@ async def detect_name(body: Dict[str, Any] = Body(...)):
     except Exception:
         pass
 
-    # 2. 兜底提取主机名/端口
     host_name = parsed.netloc or parsed.path.split("/")[0]
     return {"name": host_name or "BT源"}
 
 
-@app.get("/api/sources", dependencies=[Depends(verify_web_auth)])
+@app.get("/api/sources", dependencies=[Depends(require_auth)])
 async def get_sources():
     return [s.model_dump() for s in settings.sources]
 
 
-@app.post("/api/sources", dependencies=[Depends(verify_web_auth)])
+@app.post("/api/sources", dependencies=[Depends(require_auth)])
 async def add_source(source_data: Dict[str, Any] = Body(...)):
     global settings
     source_data["url"] = clean_url(source_data.get("url", ""))
@@ -137,7 +171,7 @@ async def add_source(source_data: Dict[str, Any] = Body(...)):
     return new_source.model_dump()
 
 
-@app.put("/api/sources/{source_id}", dependencies=[Depends(verify_web_auth)])
+@app.put("/api/sources/{source_id}", dependencies=[Depends(require_auth)])
 async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...)):
     global settings
     for i, s in enumerate(settings.sources):
@@ -151,7 +185,7 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
     raise HTTPException(status_code=404, detail="Source not found")
 
 
-@app.delete("/api/sources/{source_id}", dependencies=[Depends(verify_web_auth)])
+@app.delete("/api/sources/{source_id}", dependencies=[Depends(require_auth)])
 async def delete_source(source_id: str):
     global settings
     settings.sources = [s for s in settings.sources if s.id != source_id]
@@ -221,7 +255,7 @@ async def fetch_single_source(client: httpx.AsyncClient, source: UpstreamSource,
     return result
 
 
-@app.post("/api/test", dependencies=[Depends(verify_web_auth)])
+@app.post("/api/test", dependencies=[Depends(require_auth)])
 async def test_search(body: Dict[str, Any] = Body(...)):
     keyword = body.get("keyword", "")
     target_id = body.get("source_id", "all")
