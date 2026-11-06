@@ -5,6 +5,7 @@ import math
 import os
 import re
 from contextlib import asynccontextmanager
+from typing import Literal
 from urllib.parse import quote, urlsplit
 
 import httpx
@@ -27,7 +28,19 @@ def code_query(keyword):
     return f'{match[1].upper()}-{match[2]}' if match else None
 
 
-def resources(movie):
+def extension_code_query(keyword):
+    """Keep special identifiers usable even when JavDB has no movie entry."""
+    code = code_query(keyword)
+    if code:
+        return code
+    if len(keyword) <= 64 and re.fullmatch(
+            r'(?=[A-Za-z0-9_-]*[A-Za-z])(?=[A-Za-z0-9_-]*\d)'
+            r'[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*', keyword):
+        return keyword.upper()
+    return None
+
+
+def resources(movie, site='db_online'):
     if not isinstance(movie, dict) or not any(k in movie for k in ('magnets', 'ed2ks')):
         raise UpstreamError('Invalid movie object')
     items, seen = [], set()
@@ -66,13 +79,36 @@ def resources(movie):
             items.append({
                 # Byte-Muse requires an integer; stay within JavaScript's safe range.
                 'id': int(hashlib.sha256(key.encode()).hexdigest()[:13], 16),
-                'site': 'db_online', 'type': link_field, 'title': title,
+                'site': site, 'type': link_field, 'title': title,
                 'download_url': link, 'size_mb': size,
                 'preview_image': preview, 'date': str(resource.get('date') or ''),
-                'seeders': 0, 'chinese': any(t in flags for t in ('中字', '中文', 'chs', 'chinese')),
-                'uc': any(t in flags for t in ('无码', '破解', 'uncensored')),
-                'uhd': any(t in flags for t in ('4k', '2160p', 'uhd')), 'free': False,
+                'seeders': 0, 'chinese': resource.get('chinese') is True or any(t in flags for t in ('中字', '中文', 'chs', 'chinese')),
+                'uc': resource.get('uc') is True or any(t in flags for t in ('无码', '破解', 'uncensored')),
+                'uhd': resource.get('uhd') is True or any(t in flags for t in ('4k', '2160p', 'uhd')),
+                'free': resource.get('free') is True,
             })
+    return items
+
+
+def extension_resources(value, kind):
+    if not isinstance(value, dict) or not any(k in value for k in ('magnets', 'ed2ks')):
+        raise UpstreamError('Invalid extension response')
+    movie = {'code': value.get('code'), 'magnets': [], 'ed2ks': []}
+    for field, link_field in [('magnets', 'magnet'), ('ed2ks', 'ed2k')]:
+        entries = value.get(field)
+        if entries is None:
+            continue
+        if not isinstance(entries, list):
+            raise UpstreamError('Invalid extension resources')
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise UpstreamError('Invalid extension resource')
+            movie[field].append({**entry, link_field: entry.get('download_url'),
+                                 'name': entry.get('title') or entry.get('number'),
+                                 'date': entry.get('post_time')})
+    items = resources(movie, site='db_online_' + kind)
+    if not items and (movie['magnets'] or movie['ed2ks'] or value.get('count')):
+        raise UpstreamError('Extension resources contain no usable links')
     return items
 
 
@@ -136,6 +172,37 @@ class Provider:
                 return {'data': items, 'meta': {'selected_movies': len(selected),
                                                'limit': MAX_MOVIES, 'limited': len(matches) > MAX_MOVIES}}
 
+    async def search_extensions(self, keyword, kind):
+        if not keyword:
+            return {'data': []}
+        async with asyncio.timeout(22):
+            async with self.gate:
+                code = extension_code_query(keyword)
+                if code:
+                    value = await self.get('/api/external-magnets/' + kind + '/' + quote(code, safe=''))
+                    return {'data': extension_resources(value, kind)}
+                result = await self.get('/api/search', {'q': keyword, 'page': 1, 'limit': MAX_MOVIES})
+                if not isinstance(result, dict) or not isinstance(result.get('movies'), list):
+                    raise UpstreamError('Invalid search response')
+                codes = []
+                for movie in result['movies']:
+                    if not isinstance(movie, dict) or not isinstance(movie.get('number'), str):
+                        raise UpstreamError('Invalid movie search result')
+                    number = movie['number'].strip()
+                    if number and number not in codes:
+                        codes.append(number)
+                    if len(codes) == MAX_MOVIES:
+                        break
+                items, seen = [], set()
+                for code in codes:
+                    value = await self.get('/api/external-magnets/' + kind + '/' + quote(code, safe=''))
+                    for item in extension_resources(value, kind):
+                        if item['id'] not in seen:
+                            seen.add(item['id'])
+                            items.append(item)
+                return {'data': items, 'meta': {'selected_movies': len(codes), 'limit': MAX_MOVIES,
+                                               'limited': len(result['movies']) > MAX_MOVIES}}
+
 
 @asynccontextmanager
 async def lifespan(app):
@@ -146,7 +213,7 @@ async def lifespan(app):
         yield
 
 
-app = FastAPI(title='db_online BM-BT adapter', version='0.1.0', lifespan=lifespan)
+app = FastAPI(title='db_online BM-BT adapter', version='0.2.0', lifespan=lifespan)
 
 
 @app.get('/health')
@@ -162,3 +229,13 @@ async def search(keyword: str = Query(default='', max_length=200)):
         raise HTTPException(504, 'db_online search timed out') from None
     except UpstreamError:
         raise HTTPException(502, 'db_online search failed') from None
+
+
+@app.get('/api/torrents/{kind}')
+async def search_extensions(kind: Literal['custom', 'nyaa'], keyword: str = Query(default='', max_length=200)):
+    try:
+        return await app.state.provider.search_extensions(keyword.strip(), kind)
+    except TimeoutError:
+        raise HTTPException(504, 'db_online extension search timed out') from None
+    except UpstreamError:
+        raise HTTPException(502, 'db_online extension search failed') from None

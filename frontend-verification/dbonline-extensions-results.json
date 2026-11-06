@@ -1,0 +1,189 @@
+{
+  "deployed_at_utc": "2026-11-06T17:56:48.486784+00:00",
+  "backup": "/root/docker/db-online/backup-ext-20261106T175611Z",
+  "existing_containers_unchanged": true,
+  "adapter_image": "sha256:08e163786ef90136e76bf94a3e18ff22bb42b2ea762e9b492c55f58c6d6784f3",
+  "adapter_sha256": "992b90200568e454a23cbeb2df1974ad3306e78d4facde39c248b70bae3ea53e",
+  "compose_sha256": "68b1730d49f103327942ce28818c8e50b5efe59b06ebfcde01a03a5a224741f4",
+  "tests_in_runtime_image": 20,
+  "integrated_at_utc": "2026-11-06T17:57:13.999244+00:00",
+  "new_sources": [
+    {
+      "id": "edb7bc3d",
+      "name": "DB Online (公共扩展库)",
+      "url": "http://db_online_bt_adapter:9091/api/torrents/custom",
+      "kind": "custom"
+    },
+    {
+      "id": "cfac511a",
+      "name": "DB Online (Nyaa)",
+      "url": "http://db_online_bt_adapter:9091/api/torrents/nyaa",
+      "kind": "nyaa"
+    }
+  ],
+  "cases": [
+    {
+      "keyword": "SSIS-586",
+      "kind": "custom",
+      "upstream_success": false,
+      "adapter_success": false,
+      "status_code": 502,
+      "count": 0,
+      "latency_ms": 290
+    },
+    {
+      "keyword": "SSIS-586",
+      "kind": "nyaa",
+      "upstream_success": true,
+      "adapter_success": true,
+      "status_code": 200,
+      "count": 15,
+      "latency_ms": 1332
+    },
+    {
+      "keyword": "ssis586",
+      "kind": "custom",
+      "upstream_success": false,
+      "adapter_success": false,
+      "status_code": 502,
+      "count": 0,
+      "latency_ms": 284
+    },
+    {
+      "keyword": "ssis586",
+      "kind": "nyaa",
+      "upstream_success": true,
+      "adapter_success": true,
+      "status_code": 200,
+      "count": 15,
+      "latency_ms": 1336
+    },
+    {
+      "keyword": "IPX-451",
+      "kind": "custom",
+      "upstream_success": false,
+      "adapter_success": false,
+      "status_code": 502,
+      "count": 0,
+      "latency_ms": 270
+    },
+    {
+      "keyword": "IPX-451",
+      "kind": "nyaa",
+      "upstream_success": true,
+      "adapter_success": true,
+      "status_code": 200,
+      "count": 17,
+      "latency_ms": 1337
+    }
+  ],
+  "aggregate": {
+    "count": 26,
+    "sources": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1351,
+        "count": 8,
+        "error": null
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1848,
+        "count": 6,
+        "error": null
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 22,
+        "count": 17,
+        "error": null
+      },
+      {
+        "id": "edb7bc3d",
+        "name": "DB Online (公共扩展库)",
+        "success": false,
+        "status_code": 502,
+        "latency_ms": 307,
+        "count": 0,
+        "error": "HTTP 502"
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "success": true,
+        "status_code": 200,
+        "latency_ms": 1319,
+        "count": 15,
+        "error": null
+      }
+    ],
+    "outcome": "partial"
+  },
+  "original_three_sources_unchanged": true,
+  "api_key_unchanged": true,
+  "db_online_settings_unchanged": true,
+  "bm_bt_not_restarted": true,
+  "api_aliases": true,
+  "dedup_verified": true,
+  "byte_muse_schema": [
+    {
+      "path": "/api/torrents",
+      "validated_items": 17
+    },
+    {
+      "path": "/api/torrents/nyaa",
+      "validated_items": 15
+    }
+  ],
+  "bm_browser": {
+    "target": "extensions",
+    "checks": [
+      "actual deployed login, overview and five configured sources",
+      "all four actual workspaces have no overflow at 1440, 768, 390 and 360",
+      "mobile actual source editor opens with deletion available and cancels without changes",
+      "zero uncaught JavaScript errors"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false
+  },
+  "byte_muse_browser": {
+    "version": "1.32.0",
+    "cases": [
+      {
+        "input": "SSIS-586",
+        "browserRequestQuery": "SSIS-586",
+        "status": 200,
+        "apiCount": 26,
+        "renderedDownloadButtons": 26,
+        "resultSignature": "a831b8de6c952d04"
+      },
+      {
+        "input": "ssis586",
+        "browserRequestQuery": "ssis586",
+        "status": 200,
+        "apiCount": 26,
+        "renderedDownloadButtons": 26,
+        "resultSignature": "a831b8de6c952d04"
+      }
+    ],
+    "pageErrors": [],
+    "realBrowser": true
+  },
+  "limitations": {
+    "public_custom_library_queries_succeeded": false,
+    "public_custom_library_returns_502": true,
+    "successful_extension_contract_covered_with_fixtures": true,
+    "no_downloads_or_subscriptions": true,
+    "physical_phone": false
+  }
+}
