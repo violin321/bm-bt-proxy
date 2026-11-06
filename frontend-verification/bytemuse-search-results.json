@@ -1,0 +1,375 @@
+{
+  "tested_at_utc": "2026-11-06T14:00:52.055260+00:00",
+  "version": "1.32.0",
+  "image_id": "sha256:6ffe7a6fb77f0b45c002ca3372468dd1ba0d9f418dfb3c42f207eb3ca2cf867d",
+  "image_repo_digest": "envyafish/byte-muse@sha256:ec672cbb201fed54fa5613e20cff90dfc287e03058173bf53b5ccd2a3ebbe558",
+  "deployment": {
+    "container": "byte-muse-bt-test",
+    "separate_data": true,
+    "port": 13750,
+    "tailnet_and_loopback_only": true,
+    "memory_limit_bytes": 1073741824,
+    "original_services_unchanged": true,
+    "aggregate_config_unchanged": true,
+    "download_history_count": 0,
+    "running": true,
+    "oom_killed": false,
+    "restart_count": 0
+  },
+  "api": {
+    "byte_muse_api_cases": [
+      {
+        "query": "SSIS-586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 1323,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      },
+      {
+        "query": "ssis-586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 9547,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      },
+      {
+        "query": "SsIs-586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 9995,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      },
+      {
+        "query": "SSIS586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 10010,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      },
+      {
+        "query": "ssis586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 10004,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      },
+      {
+        "query": "SsIs586",
+        "success": true,
+        "message": "搜索结果",
+        "data_type": "list",
+        "elapsed_ms": 9988,
+        "count": 8,
+        "result_signature": "9d16d2e6330a8b38",
+        "item_keys": [
+          "id",
+          "site",
+          "type",
+          "size_mb",
+          "seeders",
+          "title",
+          "chinese",
+          "uc",
+          "uhd",
+          "free",
+          "download_url"
+        ]
+      }
+    ],
+    "aggregate_received_requests": [
+      {
+        "id": 16,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      },
+      {
+        "id": 17,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      },
+      {
+        "id": 18,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      },
+      {
+        "id": 19,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      },
+      {
+        "id": 20,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      },
+      {
+        "id": 21,
+        "keyword": "SSIS-586",
+        "outcome": "complete",
+        "unique_count": 8,
+        "target_count": 2,
+        "success_count": 2
+      }
+    ]
+  },
+  "browser": {
+    "version": "1.32.0",
+    "cases": [
+      {
+        "input": "SSIS-586",
+        "browserRequestQuery": "SSIS-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      },
+      {
+        "input": "ssis-586",
+        "browserRequestQuery": "ssis-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      },
+      {
+        "input": "SsIs-586",
+        "browserRequestQuery": "SsIs-586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      },
+      {
+        "input": "SSIS586",
+        "browserRequestQuery": "SSIS586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      },
+      {
+        "input": "ssis586",
+        "browserRequestQuery": "ssis586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      },
+      {
+        "input": "SsIs586",
+        "browserRequestQuery": "SsIs586",
+        "status": 200,
+        "apiCount": 8,
+        "renderedDownloadButtons": 8,
+        "resultSignature": "ccc4401d13ab1194"
+      }
+    ],
+    "pageErrors": [],
+    "realBrowser": true
+  },
+  "aggregate_received_requests": [
+    {
+      "id": 16,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 17,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 18,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 19,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 20,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 21,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 22,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 23,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 24,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 25,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 26,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 27,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 28,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    },
+    {
+      "id": 29,
+      "keyword": "SSIS-586",
+      "outcome": "complete",
+      "unique_count": 8,
+      "target_count": 2,
+      "success_count": 2
+    }
+  ],
+  "finding": "Byte-Muse normalizes all six tested variants to SSIS-586 before requesting the aggregate; no aggregate normalization was changed."
+}

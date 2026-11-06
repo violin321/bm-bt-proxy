@@ -47,6 +47,8 @@
 
 Byte-Muse 持久配置的 `BT_URL` 在检查时为空，本轮未修改其接入配置。消费端证据为其现有容器网络内的真实 HTTP 请求，尚未完成整个消费端 UI 发起搜索的验收。
 
+同日后续用户要求新建隔离 Byte-Muse 实测，已在独立数据与端口下完成六种番号写法的真实接口和网页搜索；现有 Byte-Muse 配置仍未修改。该新增证据见 `BYTEMUSE-SEARCH-20261106.md`，与本次生产更新当时的消费端边界分别记录。
+
 结构化证据：`frontend-verification/live-release-results.json`。实际远程页面截图保存在本地 `.impeccable/review/live-production-{1440,390}.png`，无账号、请求头或 API Key。
 
 ## 备份与回滚
