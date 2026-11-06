@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.preview-data/
+.impeccable/
+frontend-verification/screenshots/

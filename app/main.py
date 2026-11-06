@@ -6,12 +6,15 @@ import os
 import secrets
 import hmac
 import hashlib
+import sqlite3
 from urllib.parse import urlparse
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Query, HTTPException, Body, Depends, Header, Request, status, Response, Cookie
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 import httpx
 from app.config import (
+    DATA_DIR,
     load_settings,
     save_settings,
     clean_url,
@@ -19,11 +22,13 @@ from app.config import (
     AppSettings,
     UpstreamSource,
 )
+from app.stats import RequestStats
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
 
-app = FastAPI(title="BM-BT-Proxy", version="1.3.1")
+app = FastAPI(title="BM-BT-Proxy", version="1.4.0")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
 WEB_PASSWORD = os.getenv("WEB_PASSWORD", "").strip()
@@ -39,6 +44,7 @@ def generate_cookie_token() -> str:
 
 
 settings: AppSettings = load_settings()
+request_stats = RequestStats(os.path.join(DATA_DIR, "requests.sqlite3"))
 
 
 def is_authenticated(request: Request) -> bool:
@@ -136,6 +142,16 @@ async def get_settings():
     return settings.model_dump()
 
 
+@app.get("/api/stats", dependencies=[Depends(require_auth)])
+def get_stats(window: str = Query("today", pattern="^(today|week)$"),
+              utc_offset: int = Query(480, ge=-840, le=840),
+              errors_only: bool = False, before: Optional[int] = Query(None, gt=0)):
+    try:
+        return request_stats.overview(list(settings.sources), window, utc_offset, errors_only, before)
+    except (OSError, sqlite3.Error):
+        raise HTTPException(status_code=503, detail="暂时无法读取请求统计，请检查数据目录后重试")
+
+
 @app.post("/api/security", dependencies=[Depends(require_auth)])
 async def update_security(body: Dict[str, Any] = Body(...)):
     global settings
@@ -193,6 +209,9 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
             source_data["url"] = clean_url(source_data.get("url", ""))
             source_data["headers"] = clean_headers(source_data.get("headers", {}))
             updated = UpstreamSource(**{**source_data, "id": source_id})
+            old_config = s.model_dump(exclude={"name", "config_revision"})
+            new_config = updated.model_dump(exclude={"name", "config_revision"})
+            updated.config_revision = secrets.token_hex(8) if old_config != new_config else s.config_revision
             settings.sources[i] = updated
             save_settings(settings)
             return updated.model_dump()
@@ -314,6 +333,7 @@ async def test_search(body: Dict[str, Any] = Body(...)):
             deduped.append(item)
 
     total_time_ms = int((time.time() - start) * 1000)
+    await asyncio.to_thread(request_stats.record, "test", keyword, targets, res_list, len(deduped), total_time_ms)
     return {"data": deduped, "details": details, "total_time_ms": total_time_ms}
 
 
@@ -325,6 +345,7 @@ async def aggregate_torrents(keyword: Optional[str] = Query(default="")):
         return {"data": []}
 
     search_kw = keyword or ""
+    start = time.monotonic()
     all_torrents = []
 
     async with httpx.AsyncClient(verify=False) as client:
@@ -345,4 +366,6 @@ async def aggregate_torrents(keyword: Optional[str] = Query(default="")):
         else:
             deduped.append(item)
 
+    await asyncio.to_thread(request_stats.record, "api", search_kw, enabled_sources, results,
+                            len(deduped), int((time.monotonic() - start) * 1000))
     return {"data": deduped}

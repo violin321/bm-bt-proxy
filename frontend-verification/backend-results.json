@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "original URL / Token / JSON / BTIH / ED2K / title / migration / persistence",
+    "real unauthenticated / incorrect / successful login contract",
+    "shared frontend assets served by FastAPI",
+    "real create / edit for GET and POST source configuration",
+    "persistent configuration revisions distinguish edits and exact reverts",
+    "real concurrent upstream requests, BTIH dedup and image preservation",
+    "real endpoint aliases and query / header API Key authentication",
+    "real persisted dashboard stats, origins, dedup totals and query validation",
+    "real logout clears authentication"
+  ],
+  "localOnly": true,
+  "productionVerified": false
+}
