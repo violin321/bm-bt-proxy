@@ -1,6 +1,7 @@
 """Stable merging shared by manual tests and the public search endpoints."""
 import base64
 import re
+from app.resource_metadata import item_labels, normalize_label
 
 
 def canonical_btih(value):
@@ -46,15 +47,33 @@ def merge_results(sources, results, preferences):
         selected.append(row)
 
     aliases = {"chinese": "c_sub", "uc": "uncensored", "uhd": "hd"}
-    def rank(row):
+    compiled = [(rule, normalize_label(rule["value"]) if isinstance(rule, dict) else None)
+                for rule in preferences]
+    def matches(row):
         item = row[4]
+        flags = []
+        labels = None
+        for rule, expected in compiled:
+            if isinstance(rule, str):
+                key = rule.lstrip("!")
+                flag = item.get(key) is True or item.get(aliases.get(key, "")) is True
+            else:
+                if labels is None:
+                    labels = {(value["field"], normalize_label(value["value"])) for value in item_labels(item)}
+                flag = (rule["source_id"] in ("*", row[3].id) and
+                        (any(value == expected for _, value in labels) if rule["field"] == "*"
+                         else (rule["field"], expected) in labels))
+            flags.append(bool(flag))
+        return flags
+
+    def rank(row):
         values = []
-        for rule in preferences:
-            key = rule.lstrip("!")
-            flag = item.get(key) is True or item.get(aliases.get(key, "")) is True
-            values.append(int(flag) if rule.startswith("!") else -int(flag))
+        for rule, flag in zip(preferences, matches(row)):
+            defer = rule.startswith("!") if isinstance(rule, str) else rule["direction"] == "defer"
+            values.append(int(flag) if defer else -int(flag))
         return (*values, *row[:3])
     selected.sort(key=rank)
     return {"data": [r[4] for r in selected],
-            "provenance": [{"source_id": r[3].id, "source_name": r[3].name, "priority": r[0]} for r in selected],
+            "provenance": [{"source_id": r[3].id, "source_name": r[3].name, "priority": r[0],
+                            "rule_matches": matches(r)} for r in selected],
             "merge": {"preferences": preferences, "duplicates": duplicates}}

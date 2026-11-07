@@ -7,6 +7,7 @@ import secrets
 import hmac
 import hashlib
 import sqlite3
+from copy import deepcopy
 from urllib.parse import urlparse
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Query, HTTPException, Body, Depends, Header, Request, status, Response, Cookie
@@ -24,10 +25,11 @@ from app.config import (
     request_config,
     public_source,
 )
-from app.stats import RequestStats
+from app.stats import RequestStats, source_key
 from app.providers import fetch_source
 from app.aggregation import merge_results
 from app.resource_metadata import summarize_resources
+from app.label_catalog import LabelCatalog
 from app.version import VERSION, REVISION
 from pydantic import ValidationError
 
@@ -53,6 +55,7 @@ def generate_cookie_token() -> str:
 
 settings: AppSettings = load_settings()
 request_stats = RequestStats(os.path.join(DATA_DIR, "requests.sqlite3"))
+label_catalog = LabelCatalog(os.path.join(DATA_DIR, "resource-labels.sqlite3"))
 
 
 def is_authenticated(request: Request) -> bool:
@@ -94,6 +97,7 @@ def verify_api_key(token: Optional[str] = Query(default=None), x_api_key: Option
 async def startup_event():
     global settings
     settings = load_settings()
+    await asyncio.to_thread(label_catalog.reconcile, lambda: list(settings.sources))
     logger.info(f"Initialized with {len(settings.sources)} sources")
 
 
@@ -155,6 +159,15 @@ async def get_settings():
 @app.get("/api/version", dependencies=[Depends(require_auth)])
 async def get_version():
     return {"version": VERSION, "revision": REVISION}
+
+
+@app.get("/api/resource-labels", dependencies=[Depends(require_auth)])
+async def get_resource_labels():
+    sources = [source.model_copy(deep=True) for source in settings.sources]
+    try:
+        return await asyncio.to_thread(label_catalog.overview, sources)
+    except (OSError, sqlite3.Error):
+        raise HTTPException(503, "暂时无法读取资源标签，请检查数据目录后重试") from None
 
 
 @app.get("/api/stats", dependencies=[Depends(require_auth)])
@@ -264,9 +277,10 @@ async def jackett_indexers(body: Dict[str, Any] = Body(...)):
 @app.post("/api/result-preferences", dependencies=[Depends(require_auth)])
 async def update_preferences(body: Dict[str, Any] = Body(...)):
     try:
-        rules = AppSettings(result_preferences=body.get("result_preferences", [])).result_preferences
+        rules = AppSettings(sources=settings.sources,
+                            result_preferences=body.get("result_preferences", [])).result_preferences
     except ValidationError:
-        raise HTTPException(422, "排序规则无效，同一标签只能配置一次") from None
+        raise HTTPException(422, "排序规则无效，请检查标签、来源和重复规则（最多24条）") from None
     settings.result_preferences = rules
     save_settings(settings)
     return {"result_preferences": rules}
@@ -291,6 +305,8 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
             updated.config_revision = secrets.token_hex(8) if old_config != new_config else source.config_revision
             settings.sources[i] = updated
             save_settings(settings)
+            if source_key(source) != source_key(updated):
+                await asyncio.to_thread(label_catalog.reconcile, lambda: list(settings.sources))
             return public_source(updated)
     raise HTTPException(404, "Source not found")
 
@@ -299,7 +315,10 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
 async def delete_source(source_id: str):
     global settings
     settings.sources = [s for s in settings.sources if s.id != source_id]
+    settings.result_preferences = [rule for rule in settings.result_preferences
+                                   if not isinstance(rule, dict) or rule["source_id"] != source_id]
     save_settings(settings)
+    await asyncio.to_thread(label_catalog.reconcile, lambda: list(settings.sources))
     return {"status": "ok"}
 
 
@@ -316,9 +335,10 @@ async def run_search(targets, keyword):
     start = time.monotonic()
     # Snapshot settings so edits during a request cannot mix two configurations.
     targets = [s.model_copy(deep=True) for s in targets]
-    preferences = list(settings.result_preferences)
+    preferences = deepcopy(settings.result_preferences)
     async with httpx.AsyncClient(verify=False) as client:
         results = await asyncio.gather(*(fetch_single_source(client, source, keyword) for source in targets))
+    await asyncio.to_thread(label_catalog.record, targets, results, lambda: list(settings.sources))
     merged = merge_results(targets, results, preferences)
     elapsed = int((time.monotonic() - start) * 1000)
     return targets, results, merged, elapsed

@@ -1,9 +1,15 @@
 """Bounded descriptions of upstream labels for authenticated diagnostics only."""
 import re
+import unicodedata
 from collections import Counter
 
 LABEL_FIELDS = ("tags", "labels", "category", "categories", "genres")
 FLAG_FIELDS = ("free", "chinese", "c_sub", "uc", "uncensored", "uhd", "hd", "mosaic")
+
+
+def normalize_label(value):
+    """Compare complete labels without changing their upstream meaning."""
+    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
 
 
 def label_values(value):
@@ -14,9 +20,12 @@ def label_values(value):
             entry = entry.get("name") or entry.get("label")
         if not isinstance(entry, str):
             continue
+        if re.search(r"[\x00-\x1f\x7f]", entry):
+            continue
         text = " ".join(entry.split())
         if (not text or len(text) > 80 or
-                re.search(r"https?://|magnet:|ed2k:|[\x00-\x1f\x7f]|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]", text, re.I)):
+                re.search(r"https?://|magnet:|ed2k:|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]",
+                          normalize_label(text), re.I)):
             continue
         if text not in labels:
             labels.append(text)
