@@ -1,0 +1,91 @@
+{
+  "production": {
+    "checked_at_utc": "2026-11-07T07:13:10.279247+00:00",
+    "version": "1.7.0",
+    "revision": "dd7cad640ebb70f078cbbeb1a28a10ff373a2850",
+    "image": "violin321/bm-bt-proxy@sha256:5e4c44bbd4dac32910eba0f4b2e020f856c82b544309e766f295174bba9a0a01",
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "public_counts": {
+      "/api/torrents": 26,
+      "/bt/api": 8
+    },
+    "avdb_snapshot_count": 338,
+    "knaben_directory_count": 128,
+    "config_bytes_unchanged": true,
+    "api_credentials_unchanged": true,
+    "old_cookie_valid": true,
+    "original_history_preserved": true,
+    "history_before": 173,
+    "final_history_count": 178,
+    "final_label_count": 478,
+    "final_label_counts_by_source": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 339
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 0
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 6
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 4
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 129
+      }
+    ],
+    "sqlite": "ok",
+    "health": "healthy",
+    "unrelated_containers_unchanged": true,
+    "indexer": "knaben",
+    "preferences": [],
+    "consumer_schema_validated": true,
+    "snapshot_retained_after_401": true,
+    "stage_removed": true,
+    "rollback_retained": true,
+    "downloads": 0,
+    "subscriptions": 0
+  },
+  "backend": {
+    "contractsPassed": 62,
+    "officialImagePlatforms": [
+      "amd64",
+      "arm64"
+    ]
+  },
+  "browser": {
+    "checkedAt": "2026-11-07T07:14:22.614Z",
+    "checks": [
+      "public Edge shows AVDB 338-category snapshot, Knaben 128 declared categories and explicit directory permission states",
+      "actual AVDB category can be added to a scoped unsaved rule without changing production preferences",
+      "actual Jackett directory displays friendly names with ID and creates the matching ID rule draft",
+      "public Edge completes a real Knaben metadata synchronization and polling cycle",
+      "live directory UI fits 1440/768/390/360px without overflow",
+      "public Edge SNOS-381 succeeds on all five sources; production settings and preferences stay unchanged with zero uncaught exceptions"
+    ],
+    "errors": [],
+    "browser": "Microsoft Edge",
+    "publicProduction": true,
+    "physicalPhone": false,
+    "settingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "sourceCount": 5,
+    "uniqueCount": 8,
+    "avdbSnapshotCount": 338,
+    "knabenDirectoryCount": 128
+  }
+}
