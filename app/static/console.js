@@ -18,7 +18,8 @@
     savingSource: false,
     securityDirty: false,
     pendingDelete: null,
-    headerMode: "json", revealHeaders: false, ruleDraft: [], preferenceDirty: false, provenance: [],
+    headerMode: "json", revealHeaders: false, ruleDraft: [], preferenceDirty: false, preferenceSaving: false, preferenceRevision: 0, provenance: [], resultPreferences: [],
+    labelCatalog: null, catalogEpoch: 0, catalogLoading: false, catalogError: "", expandedLabelSources: new Set(),
     composeText: "", endpoint: "",
     authRedirect: false,
   };
@@ -420,6 +421,7 @@
     const changed = state.route !== next;
     state.route = next;
     if (next === "overview" && changed && state.loaded) loadStats();
+    if (next === "access" && changed && state.loaded) loadLabelCatalog();
   }
   function startTest(id = "all") {
     location.hash = "search";
@@ -662,6 +664,7 @@
   }
   async function load() {
     const epoch = ++state.loadEpoch;
+    const preferenceRevision = state.preferenceRevision;
     $("loadState").textContent = "正在读取配置";
     $("loadState").classList.remove("error-text");
     return busy($("refreshBtn"), async () => {
@@ -675,12 +678,18 @@
           if (!current || sourceFingerprint(previous) !== sourceFingerprint(current))
             invalidateSourceTest(previous.id);
         }
+        const labelsChanged = JSON.stringify(state.settings.sources.map(s => [s.id, sourceFingerprint(s)])) !== JSON.stringify(data.sources.map(s => [s.id, sourceFingerprint(s)]));
+        if (preferenceRevision !== state.preferenceRevision) data.result_preferences = copyRules(state.settings.result_preferences || []);
         state.settings = data;
-        if (!state.preferenceDirty) {state.ruleDraft = [...(data.result_preferences || [])];renderPreferences();}
+        if (labelsChanged) {state.labelCatalog = null;state.catalogError = "";}
         state.loaded = true;
+        if (!state.preferenceDirty && !state.preferenceSaving) state.ruleDraft = copyRules(data.result_preferences || []);
+        renderPreferences();
         renderSources();
         renderOverview();
         loadStats();
+        populateLabelSources();
+        loadLabelCatalog();
         message("globalStatus", "");
         $("loadState").textContent = "配置已同步";
       } catch (e) {
@@ -782,33 +791,191 @@
     const aliases = {chinese: "c_sub", uc: "uncensored", uhd: "hd"};
     return item[key] === true || item[aliases[key]] === true;
   }
+  const copyRules = rules => rules.map(rule => typeof rule === "string" ? rule : {...rule});
+  const normalizedLabel = value => value.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+  function ruleName(rule) {
+    return typeof rule === "string" ? preferenceNames[rule.replace("!", "")] || rule : `“${rule.value}”`;
+  }
+  function ruleScope(rule) {
+    if (typeof rule === "string") return preferenceHelp[rule.replace("!", "")] || "";
+    const source = rule.source_id === "*" ? "全部数据源" : state.settings.sources.find(s => s.id === rule.source_id)?.name || "来源已删除，请移除此规则";
+    return `${source} · ${rule.field === "*" ? "任意标签字段" : rule.field} · 完整标签匹配`;
+  }
+  function ruleDescription(rule) {
+    const prefer = typeof rule === "string" ? !rule.startsWith("!") : rule.direction === "prefer";
+    return `${ruleName(rule)}${prefer ? "优先" : "靠后"}${typeof rule === "string" ? "" : `（${ruleScope(rule)}）`}`;
+  }
+  function changedPreferences(text = "排序草稿已更新，保存后下次查询生效。") {
+    state.preferenceDirty = true;
+    message("preferencesStatus", text);
+    renderPreferences();
+  }
   function renderPreferences() {
     const list = $("preferenceRules");list.replaceChildren();
-    $("preferencesBadge").textContent = state.ruleDraft.length ? `${state.ruleDraft.length} 项标签偏好` : "标签偏好关闭";
-    const ordered = [...state.ruleDraft.map(r => r.replace("!", "")), ...Object.keys(preferenceNames).filter(k => !state.ruleDraft.some(r => r.replace("!", "") === k))];
-    ordered.forEach(key => {
-      const ruleIndex = state.ruleDraft.findIndex(r => r.replace("!", "") === key);
-      const row = el("div", "preference-rule");
-      const label = el("div", "rule-label");label.append(el("strong", "", preferenceNames[key]), el("small", "", preferenceHelp[key]));
-      row.append(el("span", "rule-number", ruleIndex < 0 ? "—" : ruleIndex + 1), label);
-      const select = el("select");select.setAttribute("aria-label", `${preferenceNames[key]}偏好`);
-      select.append(new Option("不参与排序", ""), new Option("优先", key), new Option("靠后", "!" + key));select.value = ruleIndex < 0 ? "" : state.ruleDraft[ruleIndex];
-      select.onchange = () => {if (ruleIndex >= 0) state.ruleDraft.splice(ruleIndex, 1);if (select.value) state.ruleDraft.splice(ruleIndex < 0 ? state.ruleDraft.length : ruleIndex, 0, select.value);state.preferenceDirty = true;renderPreferences();};
+    $("preferencesBadge").textContent = state.ruleDraft.length ? `${state.ruleDraft.length} 项${state.preferenceDirty ? " · 未保存" : "规则"}` : state.preferenceDirty ? "已关闭 · 未保存" : "排序偏好关闭";
+    const inactive = Object.keys(preferenceNames).filter(key => !state.ruleDraft.some(r => typeof r === "string" && r.replace("!", "") === key));
+    const entries = [...state.ruleDraft.map((rule, index) => ({rule, index})), ...inactive.map(rule => ({rule, index: -1}))];
+    for (const {rule, index} of entries) {
+      const row = el("div", "preference-rule" + (index < 0 ? " inactive-rule" : ""));
+      const name = ruleName(rule);
+      row.append(el("span", "rule-number", index < 0 ? "—" : String(index + 1).padStart(2, "0")));
+      const label = el("div", "rule-label");label.append(el("strong", "", name), el("small", "", ruleScope(rule)));row.append(label);
+      const select = el("select");select.setAttribute("aria-label", `${name}偏好`);
+      select.append(new Option("不参与排序", ""), new Option("优先", "prefer"), new Option("靠后", "defer"));
+      select.value = index < 0 ? "" : typeof rule === "string" ? rule.startsWith("!") ? "defer" : "prefer" : rule.direction;
+      select.onchange = () => {
+        if (index < 0 && select.value && state.ruleDraft.length >= 24) {select.value = "";message("preferencesStatus", "最多设置 24 条排序规则，请先移除一条。", true);return;}
+        if (index >= 0) state.ruleDraft.splice(index, 1);
+        if (select.value) {
+          const next = typeof rule === "string" ? (select.value === "defer" ? "!" : "") + rule.replace("!", "") : {...rule, direction: select.value};
+          state.ruleDraft.splice(index < 0 ? state.ruleDraft.length : index, 0, next);
+        }
+        changedPreferences();
+        list.querySelectorAll("select")[Math.min(Math.max(index, 0), entries.length - 1)]?.focus();
+      };
       row.append(select);
+      const actions = el("div", "rule-actions");
       for (const [text, delta] of [["上移", -1], ["下移", 1]]) {
-        const b = button(text, () => {const next = ruleIndex + delta;[state.ruleDraft[ruleIndex], state.ruleDraft[next]] = [state.ruleDraft[next], state.ruleDraft[ruleIndex]];state.preferenceDirty = true;renderPreferences();}, "btn subtle");
-        b.setAttribute("aria-label", text + preferenceNames[key]);b.disabled = ruleIndex < 0 || ruleIndex + delta < 0 || ruleIndex + delta >= state.ruleDraft.length;row.append(b);
+        const aria = text + name;
+        const b = button(text, () => {
+          const next = index + delta;
+          [state.ruleDraft[index], state.ruleDraft[next]] = [state.ruleDraft[next], state.ruleDraft[index]];
+          changedPreferences();
+          [...list.querySelectorAll("button")].find(n => n.getAttribute("aria-label") === aria)?.focus();
+        }, "btn subtle");
+        b.setAttribute("aria-label", aria);
+        b.disabled = index < 0 || index + delta < 0 || index + delta >= state.ruleDraft.length;
+        actions.append(b);
       }
-      list.append(row);
-    });
+      row.append(actions);list.append(row);
+    }
+    $("preferenceEditor").disabled = state.preferenceSaving || !state.loaded;
+    $("addLabelRuleBtn").disabled = state.ruleDraft.length >= 24;
   }
-  $("resetPreferencesBtn").onclick = () => {state.ruleDraft = [];state.preferenceDirty = true;renderPreferences();$("preferencesStatus").textContent = "标签偏好已关闭，保存后生效。";};
-  $("preferencesForm").onsubmit = e => {e.preventDefault();busy($("savePreferencesBtn"), async () => {
-    $("preferencesForm").querySelectorAll("select,button").forEach(n => n.disabled = true);
-    try {const data = await post("/api/result-preferences", {result_preferences: state.ruleDraft});state.settings.result_preferences = data.result_preferences;state.preferenceDirty = false;$("preferencesStatus").textContent = "返回顺序已保存，下次查询生效。Byte-Muse 订阅仍按自身规则选择。";}
-    catch (error) {$("preferencesStatus").textContent = "保存失败：" + error.message;}
-    finally {$("resetPreferencesBtn").disabled = false;renderPreferences();}
-  });};
+  function populateLabelSources() {
+    for (const id of ["labelCatalogSource", "sortLabelSource"]) {
+      const select = $(id), previous = select.value;
+      select.replaceChildren(new Option("全部数据源", "*"));
+      for (const source of state.settings.sources) select.append(new Option(source.name + (source.enabled ? "" : "（已停用）"), source.id));
+      if ([...select.options].some(o => o.value === previous)) select.value = previous;
+    }
+    renderLabelSuggestions();
+  }
+  function renderLabelSuggestions() {
+    const list = $("labelSuggestions"), seen = new Set();list.replaceChildren();
+    for (const source of state.labelCatalog?.sources || []) {
+      if ($("sortLabelSource").value !== "*" && source.id !== $("sortLabelSource").value) continue;
+      for (const label of source.labels || []) {
+        if ($("sortLabelField").value !== "*" && label.field !== $("sortLabelField").value) continue;
+        const key = normalizedLabel(label.value);
+        if (seen.has(key) || seen.size >= 200) continue;
+        seen.add(key);list.append(new Option(label.value, label.value));
+      }
+    }
+  }
+  function addLabelRule(rule) {
+    if (!state.loaded || state.preferenceSaving) return;
+    if (state.ruleDraft.length >= 24) {message("labelRuleStatus", "最多设置 24 条排序规则，请先移除一条。", true);return;}
+    const values = upstreamLabels({tags: [rule.value]});
+    if (!values.length) {message("labelRuleStatus", "请输入有效的文字标签（最多 80 字，不包含链接或凭据）。", true);$("sortLabelValue").focus();return;}
+    rule = {...rule, value: values[0].value};
+    const duplicate = state.ruleDraft.some(r => typeof r !== "string" && r.source_id === rule.source_id && r.field === rule.field && normalizedLabel(r.value) === normalizedLabel(rule.value));
+    if (duplicate) {message("labelRuleStatus", "相同来源、字段和标签已有规则，可直接调整方向或顺序。", true);return;}
+    state.ruleDraft.push(rule);
+    changedPreferences();
+    message("labelRuleStatus", `已添加“${rule.value}”，保存返回顺序后生效。`);
+    $("sortLabelValue").value = "";
+  }
+  async function loadLabelCatalog() {
+    if (!state.loaded) return;
+    const epoch = ++state.catalogEpoch, configEpoch = state.loadEpoch;
+    state.catalogLoading = true;state.catalogError = "";renderLabelCatalog();
+    try {
+      const data = await request("/api/resource-labels");
+      if (epoch !== state.catalogEpoch || configEpoch !== state.loadEpoch) return;
+      if (!data || !Array.isArray(data.sources) || data.sources.some(s => !Array.isArray(s.labels))) throw Error("标签缓存格式无效，请重试。");
+      state.labelCatalog = data;renderLabelSuggestions();
+    } catch (error) {
+      if (epoch === state.catalogEpoch && configEpoch === state.loadEpoch) state.catalogError = error.message;
+    } finally {
+      if (epoch === state.catalogEpoch) {state.catalogLoading = false;renderLabelCatalog();}
+    }
+  }
+  function labelDate(value) {
+    const date = new Date(value);
+    return value && !Number.isNaN(date.getTime()) ? date.toLocaleString("zh-CN", {month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"}) : "尚无成功查询";
+  }
+  function renderLabelCatalog() {
+    const box = $("labelCatalog");box.replaceChildren();
+    $("refreshLabelsBtn").disabled = !state.loaded || state.catalogLoading;
+    $("refreshLabelsBtn").textContent = state.catalogLoading ? "正在读取…" : "刷新列表";
+    const sources = state.labelCatalog?.sources || [], total = sources.reduce((sum, source) => sum + source.labels.length, 0);
+    const stale = state.catalogError ? `读取失败：${state.catalogError}${state.labelCatalog ? " 当前显示上次读取的缓存。" : ""}` : state.labelCatalog?.write_error ? "最近一次标签缓存写入失败，搜索仍可使用；当前显示已保存的标签。" : state.catalogLoading ? "正在读取标签缓存…" : `${sources.length} 个源 · 已发现 ${total} 项标签与字段组合`;
+    message("labelCatalogStatus", stale, Boolean(state.catalogError || state.labelCatalog?.write_error));
+    if (!state.labelCatalog) return;
+    if (!sources.length) {box.append(el("p", "catalog-empty", "添加数据源并完成一次搜索后，标签会自动积累在这里。"));return;}
+    const filter = normalizedLabel($("labelCatalogFilter").value), scope = $("labelCatalogSource").value;
+    let visible = 0;
+    for (const source of sources) {
+      if (scope !== "*" && source.id !== scope) continue;
+      const matching = source.labels.filter(label => !filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(source.name).includes(filter));
+      if (filter && !matching.length) continue;
+      visible++;
+      const row = el("article", "catalog-source");
+      const heading = el("div", "catalog-source-heading");
+      const title = el("div");title.append(el("h4", "", source.name), el("span", "small muted", `${source.labels.length} 项${source.enabled ? "" : " · 已停用"} · 最近成功查询 ${labelDate(source.last_query_at)}`));
+      heading.append(title);row.append(heading);
+      const tags = el("div", "catalog-tags");
+      const expanded = filter || state.expandedLabelSources.has(source.id);
+      for (const label of matching.slice(0, expanded ? 200 : 12)) {
+        const tag = button("", () => {
+          $("sortLabelValue").value = label.value;$("sortLabelSource").value = source.id;$("sortLabelField").value = label.field;$("sortLabelDirection").value = "prefer";
+          addLabelRule({type: "label", value: label.value, field: label.field, source_id: source.id, direction: "prefer"});
+          $("preferencesForm").scrollIntoView({behavior: "auto", block: "start"});
+          $("sortLabelSource").focus({preventScroll: true});
+        }, "catalog-tag");
+        tag.disabled = state.preferenceSaving;
+        tag.setAttribute("aria-label", `将 ${source.name} 的 ${label.field} 标签 ${label.value} 加入排序`);
+        tag.title = `字段 ${label.field} · 累计命中 ${label.count} 次 · 最近发现 ${labelDate(label.last_seen)}`;
+        tag.append(el("span", "catalog-tag-field", label.field), el("span", "", label.value), el("span", "catalog-tag-count", label.count), el("span", "catalog-tag-add", "+"));tags.append(tag);
+      }
+      if (tags.childElementCount) row.append(tags);
+      else row.append(el("p", "small muted", source.last_query_at ? "成功查询过，尚未发现文字标签；原始布尔属性可在搜索与测试中查看。" : "尚未积累标签。完成一次搜索后会自动记录，源请求配置变更后重新积累。"));
+      if (!filter && matching.length > 12) {
+        const more = button(expanded ? "收起标签" : `展开其余 ${matching.length - 12} 项`, () => {
+          if (expanded) state.expandedLabelSources.delete(source.id);else state.expandedLabelSources.add(source.id);
+          renderLabelCatalog();
+          [...box.querySelectorAll("button")].find(n => n.dataset.expandSource === source.id)?.focus();
+        }, "btn subtle catalog-expand");
+        more.dataset.expandSource = source.id;more.setAttribute("aria-expanded", String(Boolean(expanded)));row.append(more);
+      }
+      if (source.labels_limited) row.append(el("p", "hint", "标签缓存已达到容量上限，部分较早的标签可能已被替换。"));
+      box.append(row);
+    }
+    if (!visible) box.append(el("p", "catalog-empty", "没有匹配的已发现标签，试试其他来源或关键词。"));
+  }
+  $("refreshLabelsBtn").onclick = loadLabelCatalog;
+  $("labelCatalogSource").onchange = renderLabelCatalog;
+  $("labelCatalogFilter").oninput = renderLabelCatalog;
+  $("sortLabelSource").onchange = renderLabelSuggestions;
+  $("sortLabelField").onchange = renderLabelSuggestions;
+  $("addLabelRuleBtn").onclick = () => addLabelRule({type: "label", value: $("sortLabelValue").value, source_id: $("sortLabelSource").value, field: $("sortLabelField").value, direction: $("sortLabelDirection").value});
+  $("sortLabelValue").addEventListener("keydown", e => {if (e.key === "Enter") {e.preventDefault();$("addLabelRuleBtn").click();}});
+  $("resetPreferencesBtn").onclick = () => {state.ruleDraft = [];changedPreferences("所有排序偏好已关闭，保存后生效。");};
+  $("preferencesForm").onsubmit = async e => {
+    e.preventDefault();
+    if (!state.loaded || state.preferenceSaving) return;
+    const rules = copyRules(state.ruleDraft);
+    state.preferenceSaving = true;renderPreferences();renderLabelCatalog();
+    $("savePreferencesBtn").textContent = "正在保存…";
+    try {
+      const data = await post("/api/result-preferences", {result_preferences: rules});
+      state.settings.result_preferences = data.result_preferences;state.ruleDraft = copyRules(data.result_preferences);state.preferenceDirty = false;state.preferenceRevision++;
+      message("preferencesStatus", "返回顺序已保存，下次查询生效。可到搜索与测试中查看每条结果的排序依据。");
+      message("labelRuleStatus", "");
+    } catch (error) {message("preferencesStatus", "保存失败：" + error.message, true);}
+    finally {state.preferenceSaving = false;$("savePreferencesBtn").textContent = "保存返回顺序";renderPreferences();renderLabelCatalog();}
+  };
   function appendIndexerDetails(parent, detail) {
     if (!detail.indexers?.length && !detail.skipped_count) return;
     const box = el("details", "indexer-details");
@@ -1126,8 +1293,9 @@
       for (let entry of values) {
         if (entry && typeof entry === "object" && !Array.isArray(entry)) entry = entry.name || entry.label;
         if (typeof entry !== "string") continue;
+        if (/[\x00-\x1f\x7f]/.test(entry)) continue;
         const text = entry.replace(/\s+/g, " ").trim();
-        if (!text || text.length > 80 || /https?:\/\/|magnet:|ed2k:|[\x00-\x1f\x7f]|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]/i.test(text) || seen.has(text)) continue;
+        if (!text || text.length > 80 || /https?:\/\/|magnet:|ed2k:|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]/i.test(text.normalize("NFKC")) || seen.has(text)) continue;
         seen.add(text);labels.push({field, value: text});
       }
     }
@@ -1247,6 +1415,19 @@
         }
         body.append(rawTags);
       }
+      if (origin && state.resultPreferences.length) {
+        const reasons = el("details", "result-sort-reasons");
+        reasons.append(el("summary", "", `第 ${itemIndex + 1} 条 · 查看排序依据`));
+        if (Array.isArray(origin.rule_matches) && origin.rule_matches.length === state.resultPreferences.length) {
+          state.resultPreferences.forEach((rule, index) => {
+            const row = el("div", "sort-reason");
+            row.append(el("span", "", `${index + 1}. ${ruleDescription(rule)}`), el("span", origin.rule_matches[index] ? "sort-match" : "muted", origin.rule_matches[index] ? "命中" : "未命中"));
+            reasons.append(row);
+          });
+        } else reasons.append(el("p", "hint", "本次未提供规则命中明细，请重新测试。"));
+        reasons.append(el("p", "hint", `条件相同时按源优先级 ${origin.priority}、源配置顺序及资源原顺序排列。`));
+        body.append(reasons);
+      }
       const link =
         typeof item.magnet === "string" && item.magnet.trim()
           ? item.magnet
@@ -1310,7 +1491,8 @@
     let mergeNote = $("mergeExplanation");
     if (!mergeNote) {mergeNote = el("details", "merge-explanation");mergeNote.id = "mergeExplanation";$("metrics").after(mergeNote);}
     mergeNote.replaceChildren(el("summary", "", `排序与去重说明 · ${(data.merge?.duplicates || []).length} 条重复记录`));
-    mergeNote.append(el("p", "small muted", (data.merge?.preferences || []).length ? `标签顺序：${data.merge.preferences.join(" → ")}，之后比较源优先级。` : "标签偏好关闭；按源优先级排序，同级保留原顺序。"));
+    mergeNote.append(el("p", "small muted", (data.merge?.preferences || []).length ? `先按源优先级去重，再依次比较：${data.merge.preferences.map(ruleDescription).join(" → ")}，最后按源优先级及原顺序排列。` : "排序偏好关闭；按源优先级去重和排序，同级保留原顺序。"));
+    mergeNote.append(el("p", "hint", "文字标签只匹配每条最终保留资源的实际标签；缓存用于选择规则，不会给资源补标签。"));
     (data.merge?.duplicates || []).slice(0, 20).forEach(d => mergeNote.append(el("p", "small", `保留 ${d.kept_source}，合并 ${d.discarded_source}：${d.reason}`)));
     $("testDiagnostics").hidden = false;
     $("testTime").textContent = state.testedAt.toLocaleTimeString("zh-CN", {
@@ -1394,6 +1576,7 @@
             (item) => item && typeof item === "object" && !Array.isArray(item),
           );
           state.provenance = Array.isArray(data.provenance) ? data.provenance : [];
+          state.resultPreferences = copyRules(data.merge?.preferences || []);
           state.details = Array.isArray(data.details)
             ? data.details.filter((d) => d && typeof d === "object")
             : [];
@@ -1409,6 +1592,7 @@
           });
           renderDiagnostics(data);
           loadStats();
+          loadLabelCatalog();
           renderSources();
           $("jsonView").textContent = JSON.stringify(
             { data: state.results },

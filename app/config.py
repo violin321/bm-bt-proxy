@@ -2,8 +2,9 @@ import json
 import os
 import uuid
 import re
-from typing import List, Dict, Any, Optional, Literal
-from pydantic import BaseModel, Field, field_validator
+from typing import List, Dict, Any, Optional, Literal, Union
+from pydantic import BaseModel, Field, field_validator, model_validator
+from app.resource_metadata import LABEL_FIELDS, label_values, normalize_label
 
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
@@ -66,18 +67,43 @@ class AppSettings(BaseModel):
     api_key_enabled: bool = False
     api_key: str = ""
     sources: List[UpstreamSource] = Field(default_factory=list)
-    result_preferences: List[str] = Field(default_factory=list)
+    result_preferences: List[Union[str, Dict[str, Any]]] = Field(default_factory=list, max_length=24)
 
     @field_validator("result_preferences")
     @classmethod
     def validate_preferences(cls, value):
         seen = set()
         for rule in value:
-            key = rule.lstrip("!")
-            if rule not in (key, "!" + key) or key not in {"free", "chinese", "uc", "uhd"} or key in seen:
+            if isinstance(rule, str):
+                key = rule.lstrip("!")
+                if rule not in (key, "!" + key) or key not in {"free", "chinese", "uc", "uhd"}:
+                    raise ValueError("排序属性无效")
+                identity = ("flag", key)
+            else:
+                if (set(rule) != {"type", "value", "field", "source_id", "direction"} or
+                        rule.get("type") != "label" or rule.get("field") not in ("*", *LABEL_FIELDS) or
+                        not isinstance(rule.get("direction"), str) or
+                        rule.get("direction") not in {"prefer", "defer"} or
+                        not isinstance(rule.get("value"), str) or
+                        not isinstance(rule.get("source_id"), str) or not rule["source_id"]):
+                    raise ValueError("文字标签规则无效")
+                labels = label_values(rule["value"])
+                if len(labels) != 1:
+                    raise ValueError("文字标签无效")
+                rule["value"] = labels[0]
+                identity = ("label", rule["source_id"], rule["field"], normalize_label(rule["value"]))
+            if identity in seen:
                 raise ValueError("排序标签无效或重复")
-            seen.add(key)
+            seen.add(identity)
         return value
+
+    @model_validator(mode="after")
+    def validate_preference_sources(self):
+        ids = {source.id for source in self.sources}
+        if any(isinstance(rule, dict) and rule["source_id"] != "*" and rule["source_id"] not in ids
+               for rule in self.result_preferences):
+            raise ValueError("文字标签规则引用了不存在的源")
+        return self
 
 
 def request_config(source):

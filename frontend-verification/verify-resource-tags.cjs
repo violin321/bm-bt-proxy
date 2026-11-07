@@ -58,7 +58,7 @@ const sample={data:[{title:'SSIS-586 · 上游标签展示样本',site:'AVDB',ta
    await page.setViewportSize({width,height:1000});
    await page.screenshot({path:path.join(__dirname,'screenshots',`resource-tags-${width}.png`),fullPage:true,animations:'disabled'});
   }
-  await page.getByRole('link',{name:'设置',exact:true}).click();await page.getByRole('heading',{name:'排序属性与返回顺序',exact:true}).waitFor();
+  await page.getByRole('link',{name:'设置',exact:true}).click();await page.getByRole('heading',{name:'标签与返回顺序',exact:true}).waitFor();
   assert((await page.locator('#preferencesForm').textContent()).includes('上游返回的标签'));
   const config=await (await page.request.get(BASE+'/api/settings')).json();assert.deepEqual(config.result_preferences,[]);
   pass('settings point to actual upstream labels and sorting preferences remain off');

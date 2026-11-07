@@ -334,11 +334,37 @@
                   role="status"
                 ></p>
               </form>
+              <section class="settings-section label-catalog-section" aria-labelledby="labelCatalogHeading">
+                <div class="section-heading"><h3 id="labelCatalogHeading">已发现的资源标签</h3><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button></div>
+                <p class="muted small">从各源实际返回的资源中累计，刷新页面后仍可查看。这里是已发现的标签，不是源的完整目录；点击标签可添加排序规则。</p>
+                <div class="label-catalog-tools">
+                  <label class="field" for="labelCatalogSource">来源<select id="labelCatalogSource"><option value="*">全部数据源</option></select></label>
+                  <label class="field" for="labelCatalogFilter">查找标签<input id="labelCatalogFilter" type="search" placeholder="如 字幕、无码破解、UHD" maxlength="80" /></label>
+                </div>
+                <p id="labelCatalogStatus" class="small muted" role="status">正在读取标签缓存…</p>
+                <div id="labelCatalog" class="label-catalog"></div>
+                <p class="hint label-catalog-note">累计次数包含多次查询的重复命中。90 天未再次发现的标签会清理，每源最多 200 项；刷新列表只读取缓存，不会扫描上游。</p>
+              </section>
               <form id="preferencesForm" class="settings-section preference-section">
-                <div class="section-heading"><h3>排序属性与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
-                <p class="muted small">这四项属性用于排序。各源实际返回的文字标签、分类及属性字段，可在“搜索与测试”的“上游返回的标签”查看。设为“优先”或“靠后”后，按编号依次比较，再比较源优先级；条件相同保留原顺序。Byte-Muse 会按自己的规则再次过滤、排序。</p>
-                <div id="preferenceRules" class="preference-rules"></div>
-                <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭标签偏好</button></div>
+                <div class="section-heading"><h3>标签与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
+                <p class="muted small">先按源优先级去重，再按编号依次比较属性和文字标签。条件相同按源优先级及原顺序排列，没有标签的资源仍会保留。上游返回的标签与原始属性仍可在“搜索与测试”查看。Byte-Muse 会按自己的规则再次过滤、排序。</p>
+                <fieldset id="preferenceEditor" class="preference-editor">
+                  <legend class="sr-only">编辑返回顺序</legend>
+                  <div id="preferenceRules" class="preference-rules"></div>
+                  <div class="label-rule-builder">
+                    <h4>添加文字标签规则</h4>
+                    <p class="hint">从已发现的标签选择，也可手动填写。按完整标签匹配，忽略大小写和全角半角；不同含义的标签需分别添加。最多 24 条规则。</p>
+                    <div class="label-rule-fields">
+                      <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
+                      <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
+                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">标签 · tags</option><option value="labels">标签 · labels</option><option value="category">分类 · category</option><option value="categories">分类 · categories</option><option value="genres">风格 · genres</option></select></label>
+                      <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
+                    </div>
+                    <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>
+                    <p id="labelRuleStatus" class="small" role="status"></p>
+                  </div>
+                  <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭所有排序偏好</button></div>
+                </fieldset>
                 <p id="preferencesStatus" class="small" role="status"></p>
               </form>
               <section class="settings-section version-section" aria-labelledby="versionHeading">
