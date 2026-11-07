@@ -545,6 +545,7 @@ async function noOverflow(page, name) {
       .locator("#securitySaved")
       .filter({ hasText: "已保存" })
       .waitFor();
+    await page.getByText("复制兼容令牌参数的接入地址", {exact:true}).click();
     await page.getByRole("button", { name: "复制接入地址" }).click();
     const copiedUrl = new URL(
       await page.evaluate(() => navigator.clipboard.readText()),

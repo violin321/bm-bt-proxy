@@ -19,6 +19,8 @@
     securityDirty: false,
     pendingDelete: null,
     headerMode: "json", revealHeaders: false, ruleDraft: [], preferenceDirty: false, provenance: [],
+    composeText: "", endpoint: "",
+    authRedirect: false,
   };
   const icons = {
     edit: "M16 3 21 8 9 20H4v-5L16 3Zm-2 2 5 5",
@@ -109,7 +111,7 @@
         signal: controller.signal,
       });
       if (response.status === 401) {
-        location.assign("/login");
+        if (!state.authRedirect) {state.authRedirect = true;location.assign("/login");}
         throw Error("登录已过期，请重新登录。");
       }
       let data;
@@ -399,7 +401,7 @@
       overview: "运行概览",
       sources: "数据源",
       search: "搜索与测试",
-      access: "接入设置",
+      access: "设置",
     };
     for (const name of ["overview", "sources", "search", "access"])
       $("page-" + name).hidden = name !== next;
@@ -426,11 +428,38 @@
     $("testKeyword").focus();
   }
   function updateEndpoint() {
-    const u = new URL("/api/torrents", location.origin);
-    if (state.settings.api_key_enabled && state.settings.api_key)
-      u.searchParams.set("token", state.settings.api_key);
-    u.searchParams.set("keyword", "");
-    $("apiUrlCode").textContent = u.href;
+    state.composeText = "";state.endpoint = "";
+    try {
+      const base = new URL($("consumerBaseUrl").value.trim());
+      if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.search || base.hash)
+        throw Error("请填写 HTTP / HTTPS 服务地址，不含账号、查询参数或片段。");
+      const path = base.pathname.replace(/\/+$/, "");
+      base.pathname = path.endsWith("/api/torrents") ? path : path + "/api/torrents";
+      const enabled = Boolean(state.settings.api_key_enabled && state.settings.api_key);
+      const headers = enabled ? {"X-API-Key": state.settings.api_key} : {};
+      const publicHeaders = enabled ? {"X-API-Key": "••••••••"} : {};
+      const yamlString = value => JSON.stringify(value.replace(/\$/g, "$$$$"));
+      const compose = value => ["BT_URL: " + yamlString(base.href), 'BT_METHOD: "get"', "BT_HEADER: " + yamlString(JSON.stringify(value)), 'BT_JSON_DATA: ""'].join("\n");
+      state.composeText = compose(headers);state.consumerHeaders = JSON.stringify(headers);
+      $("consumerCompose").textContent = compose(publicHeaders);
+      $("consumerUrl").textContent = base.href;
+      $("consumerHeaders").textContent = JSON.stringify(publicHeaders);
+      $("composeKeyHint").textContent = enabled
+        ? "密钥已隐藏；复制 Compose 配置会包含已保存的 API Key。"
+        : "接口保护未开启，BT_HEADER 使用空对象。";
+      const u = new URL(base);
+      if (enabled) u.searchParams.set("token", state.settings.api_key);
+      u.searchParams.set("keyword", "");state.endpoint = u.href;
+      $("apiUrlCode").textContent = enabled ? base.href + "?token=••••••••&keyword=" : u.href;
+      $("copyCompose").disabled = !state.loaded;$("copyApi").disabled = !state.loaded;
+      message("consumerError", "");
+    } catch (error) {
+      $("consumerCompose").textContent = "填写有效服务地址后生成配置。";
+      $("consumerUrl").textContent = "—";$("consumerHeaders").textContent = "—";
+      $("apiUrlCode").textContent = "接入地址暂不可用";
+      $("copyCompose").disabled = true;$("copyApi").disabled = true;
+      message("consumerError", error.message, true);
+    }
     $("authBadge").textContent = state.settings.api_key_enabled
       ? "API Key 已开启"
       : "API Key 未开启";
@@ -439,6 +468,38 @@
       Boolean(state.settings.api_key_enabled),
     );
   }
+  $("consumerNetwork").onchange = () => {
+    const mode = $("consumerNetwork").value;
+    if (mode === "docker") $("consumerBaseUrl").value = "http://bm-bt-proxy:8000";
+    if (mode === "browser") $("consumerBaseUrl").value = location.origin;
+    $("consumerAddressHint").textContent = mode === "docker"
+      ? "两个容器须加入同一 Docker 网络；bm-bt-proxy 为服务名，8000 为容器端口。"
+      : "请填写 Byte-Muse 容器可访问的地址；远程容器的 localhost 指向它自身。";
+    if (state.loaded) updateEndpoint();
+  };
+  $("consumerBaseUrl").oninput = () => {$("consumerNetwork").value = "custom";$("consumerAddressHint").textContent = "请填写 Byte-Muse 容器可访问的地址；远程容器的 localhost 指向它自身。";if (state.loaded) updateEndpoint();};
+  $("copyCompose").onclick = () => state.loaded && state.composeText
+    ? copy(state.composeText) : toast("请先读取配置并填写有效服务地址");
+  $("copyConsumerHeaders").onclick = () => state.loaded && state.composeText
+    ? copy(state.consumerHeaders) : toast("请先读取配置并填写有效服务地址");
+  async function loadVersion() {
+    return busy($("refreshVersion"), async () => {
+      try {
+        const data = await request("/api/version");
+        if (!/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(data.version || "")) throw Error("版本响应格式无效");
+        const label = "v" + data.version;
+        $("headerVersion").textContent = label;$("footerVersion").textContent = label;
+        $("runningVersion").textContent = label;
+        $("buildRevision").textContent = /^[a-f\d]{7,40}$/i.test(data.revision || "") ? data.revision.slice(0, 7) : "未提供构建编号";
+        $("versionStatus").textContent = "来自当前连接的 BM-BT 服务；发布记录中的版本可能更新。";
+      } catch (error) {
+        $("headerVersion").textContent = "版本未读取";$("footerVersion").textContent = "";
+        $("runningVersion").textContent = "读取失败";$("buildRevision").textContent = "—";
+        $("versionStatus").textContent = error.message + "，可重新读取。";
+      }
+    });
+  }
+  $("refreshVersion").onclick = loadVersion;
   function populateSecurity() {
     if (state.securityDirty) return;
     $("secEnabled").checked = Boolean(state.settings.api_key_enabled);
@@ -711,13 +772,25 @@
   $("addHeaderBtn").onclick = () => addHeaderRow();
   $("revealHeadersBtn").onclick = () => {state.revealHeaders = !state.revealHeaders;setHeaderMode(state.headerMode);};
   const preferenceNames = {free: "免流", chinese: "中文字幕", uc: "UC / 无码", uhd: "UHD / 4K"};
+  const preferenceHelp = {
+    free: "free · 上游标注的免流资源；公共站点不等于免流。",
+    chinese: "chinese / c_sub · 上游标注有中文字幕。",
+    uc: "uc / uncensored · 上游标注无码或破解。",
+    uhd: "uhd / hd · 上游高清标记；实际分辨率以资源信息为准。",
+  };
+  function resourceFlag(item, key) {
+    const aliases = {chinese: "c_sub", uc: "uncensored", uhd: "hd"};
+    return item[key] === true || item[aliases[key]] === true;
+  }
   function renderPreferences() {
     const list = $("preferenceRules");list.replaceChildren();
     $("preferencesBadge").textContent = state.ruleDraft.length ? `${state.ruleDraft.length} 项标签偏好` : "标签偏好关闭";
     const ordered = [...state.ruleDraft.map(r => r.replace("!", "")), ...Object.keys(preferenceNames).filter(k => !state.ruleDraft.some(r => r.replace("!", "") === k))];
     ordered.forEach(key => {
       const ruleIndex = state.ruleDraft.findIndex(r => r.replace("!", "") === key);
-      const row = el("div", "preference-rule");row.append(el("span", "rule-number", ruleIndex < 0 ? "—" : ruleIndex + 1), el("strong", "", preferenceNames[key]));
+      const row = el("div", "preference-rule");
+      const label = el("div", "rule-label");label.append(el("strong", "", preferenceNames[key]), el("small", "", preferenceHelp[key]));
+      row.append(el("span", "rule-number", ruleIndex < 0 ? "—" : ruleIndex + 1), label);
       const select = el("select");select.setAttribute("aria-label", `${preferenceNames[key]}偏好`);
       select.append(new Option("不参与排序", ""), new Option("优先", key), new Option("靠后", "!" + key));select.value = ruleIndex < 0 ? "" : state.ruleDraft[ruleIndex];
       select.onchange = () => {if (ruleIndex >= 0) state.ruleDraft.splice(ruleIndex, 1);if (select.value) state.ruleDraft.splice(ruleIndex < 0 ? state.ruleDraft.length : ruleIndex, 0, select.value);state.preferenceDirty = true;renderPreferences();};
@@ -996,7 +1069,7 @@
           });
           state.securityDirty = false;
           await load();
-          message("securitySaved", "已保存。请同步更新 Byte-Muse 接入地址。");
+          message("securitySaved", "已保存。请重新复制上方 Compose 配置，同步更新 Byte-Muse。");
           toast("接口保护设置已保存");
         } catch (error) {
           message("securityError", "保存失败：" + error.message, true);
@@ -1044,6 +1117,13 @@
     return (n / 1024 ** i).toFixed(1) + " " + ["B", "KB", "MB", "GB", "TB"][i];
   }
   function renderResults() {
+    const inventory = $("resultTags");inventory.replaceChildren(el("span", "", "本次资源标签"));
+    for (const [key, name] of Object.entries(preferenceNames)) {
+      const count = state.results.filter(item => resourceFlag(item, key)).length;
+      const tag = el("span", "tag" + (count ? " positive" : ""), `${name} ${count}`);
+      tag.title = preferenceHelp[key];inventory.append(tag);
+    }
+    inventory.append(el("span", "hint", "按上游标记统计，同一结果可有多个标签。"));
     const container = $("cardView");
     container.replaceChildren();
     if (!state.results.length) {
@@ -1089,12 +1169,10 @@
       tags.append(el("span", "tag", item.site || item.website || "来源未标注"));
       const origin = state.provenance[itemIndex];
       if (origin) tags.append(el("span", "priority-tag", `${origin.source_name} · 优先级 ${origin.priority}`));
-      for (const [flag, name] of [
-        [item.chinese || item.c_sub, "中文字幕"],
-        [item.uncensored || item.uc, "无码"],
-        [item.uhd || item.hd, "高清"],
-      ])
-        if (flag) tags.append(el("span", "tag", name));
+      for (const [key, name] of Object.entries(preferenceNames))
+        if (resourceFlag(item, key)) {
+          const tag = el("span", "tag", name);tag.title = preferenceHelp[key];tags.append(tag);
+        }
       const meta = el("div", "meta");
       meta.append(
         el("span", "", formatSize(item)),
@@ -1309,8 +1387,8 @@
   $("cardBtn").onclick = () => switchView("card");
   $("jsonBtn").onclick = () => switchView("json");
   $("copyApi").onclick = () =>
-    state.loaded
-      ? copy($("apiUrlCode").textContent)
+    state.loaded && state.endpoint
+      ? copy(state.endpoint)
       : toast("请先成功读取配置");
   $("copyJson").onclick = () => copy($("jsonView").textContent);
   $("logoutBtn").onclick = () => {
@@ -1341,5 +1419,7 @@
   window.addEventListener("hashchange", route);
   renderOverview();
   route();
+  $("consumerBaseUrl").value = location.origin;
   load();
+  loadVersion();
 })();
