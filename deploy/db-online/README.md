@@ -42,7 +42,7 @@ docker compose -p db-online --env-file .env ps
 
 ### 扩展磁链库与 Nyaa
 
-适配器 `0.2.0` 增加两个独立入口，可按需分别添加 BM-BT 源，其他字段与上表相同：
+适配器 `0.2.0` 增加两个独立入口，可按需分别添加 BM-BT 源，其他字段与上表相同。`0.2.1` 进一步保留资源的原始 `tags`，将标签“字幕”识别为 `chinese=true`；Nyaa 的原始布尔属性放在 `upstream_flags` 中供诊断，不会将 `hd` 自动当成新的排序条件：
 
 | 名称 | URL |
 |---|---|

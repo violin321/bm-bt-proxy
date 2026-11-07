@@ -66,12 +66,30 @@
 .rule-label small {display:block;font-size:11px;color:var(--muted);line-height:1.7;margin-top:5px;overflow-wrap:anywhere;}
 .result-tags {display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:20px;font-size:12px;color:var(--muted);}
 .result-tags>.hint {flex-basis:100%;}
+.upstream-tags-section {margin-bottom:20px;}
+.upstream-tags-section h3 {font-size:15px;margin-bottom:8px;}
+.source-tag-inventory {margin-top:16px;border-top:1px solid var(--line);}
+.source-tag-row {display:grid;grid-template-columns:minmax(130px,1fr) minmax(0,3fr);gap:16px;padding:14px 0;border-bottom:1px solid var(--line);}
+.source-tag-name {min-width:0;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere;font-size:12px;}
+.source-tag-body {min-width:0;}
+.source-tag-body .tags,.result-upstream-labels {flex-wrap:wrap;gap:6px;}
+.source-tag-body .tag,.result-upstream-labels .tag {white-space:normal;overflow-wrap:anywhere;}
+.source-flag-details {margin-top:8px;font-size:11px;color:var(--muted);}
+.source-flag-details summary,.result-attributes summary {cursor:pointer;}
+.source-flag-details summary,.result-attributes>summary {min-height:30px;padding-block:6px;}
+.source-flag-details .tags {margin-top:8px;}
+.result-upstream-labels {margin-block:12px;}
+.result-attributes {margin-bottom:20px;font-size:12px;color:var(--muted);}
+.result-attributes .result-tags {padding-block:12px 0;}
 .version-details {display:flex;flex-wrap:wrap;gap:24px 70px;margin:18px 0;}
 .version-details dt {font-size:12px;color:var(--muted);margin-bottom:6px;}
 .version-details dd {font:16px var(--mono);margin:0;}
 #runningVersion {font-size:24px;color:var(--accent);}
 .version-section>.text-link {display:inline-flex;margin-top:14px;}
 @media (max-width:600px) {
+  .source-tag-row {grid-template-columns:minmax(0,1fr);gap:8px;}
+  .source-tag-name {flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:8px;}
+  .source-flag-details summary,.result-attributes>summary {min-height:44px;padding-block:12px;}
   .preference-rule {grid-template-columns:22px minmax(85px,1fr) minmax(105px,1fr);gap:7px;}
   .preference-rule > .btn {grid-row:2;padding:5px 8px;}
   .preference-rule > .btn:nth-last-child(2) {grid-column:2;}

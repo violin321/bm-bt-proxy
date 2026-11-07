@@ -40,6 +40,21 @@ def extension_code_query(keyword):
     return None
 
 
+def resource_tags(value):
+    labels = []
+    for tag in value[:32] if isinstance(value, list) else []:
+        label = tag.get('name') if isinstance(tag, dict) else tag
+        if not isinstance(label, str):
+            continue
+        label = ' '.join(label.split())
+        if (not label or len(label) > 80 or
+                re.search(r'https?://|magnet:|ed2k:|[\x00-\x1f\x7f]|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]', label, re.I)):
+            continue
+        if label not in labels:
+            labels.append(label)
+    return labels
+
+
 def resources(movie, site='db_online'):
     if not isinstance(movie, dict) or not any(k in movie for k in ('magnets', 'ed2ks')):
         raise UpstreamError('Invalid movie object')
@@ -70,9 +85,7 @@ def resources(movie, site='db_online'):
             except (TypeError, ValueError):
                 size = 0
             title = str(resource.get('name') or movie.get('code') or 'db_online')[:2048]
-            tags = resource.get('tags') or []
-            labels = [tag if isinstance(tag, str) else str(tag.get('name', ''))
-                      for tag in tags if isinstance(tag, (str, dict))] if isinstance(tags, list) else []
+            labels = resource_tags(resource.get('tags'))
             flags = (' '.join(labels) + ' ' + title).casefold()
             preview = movie.get('cover_url') or movie.get('thumb_url') or ''
             preview = preview if isinstance(preview, str) and urlsplit(preview).scheme in ('http', 'https') else ''
@@ -82,10 +95,13 @@ def resources(movie, site='db_online'):
                 'site': site, 'type': link_field, 'title': title,
                 'download_url': link, 'size_mb': size,
                 'preview_image': preview, 'date': str(resource.get('date') or ''),
-                'seeders': 0, 'chinese': resource.get('chinese') is True or any(t in flags for t in ('中字', '中文', 'chs', 'chinese')),
+                'tags': labels,
+                'seeders': 0, 'chinese': resource.get('chinese') is True or '字幕' in labels or any(t in flags for t in ('中字', '中文', 'chs', 'chinese')),
                 'uc': resource.get('uc') is True or any(t in flags for t in ('无码', '破解', 'uncensored')),
                 'uhd': resource.get('uhd') is True or any(t in flags for t in ('4k', '2160p', 'uhd')),
                 'free': resource.get('free') is True,
+                'upstream_flags': {field: resource[field] for field in ('free', 'chinese', 'uc', 'uhd', 'hd', 'mosaic', 'uncensored')
+                                   if type(resource.get(field)) is bool},
             })
     return items
 
@@ -213,7 +229,7 @@ async def lifespan(app):
         yield
 
 
-app = FastAPI(title='db_online BM-BT adapter', version='0.2.0', lifespan=lifespan)
+app = FastAPI(title='db_online BM-BT adapter', version='0.2.1', lifespan=lifespan)
 
 
 @app.get('/health')

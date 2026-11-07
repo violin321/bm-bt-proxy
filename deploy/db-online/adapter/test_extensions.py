@@ -59,6 +59,17 @@ class ExtensionRequests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(0 <= item['id'] < 2 ** 53)
         self.assertEqual(item['id'], adapter.extension_resources(extension(), 'custom')[0]['id'])
 
+    async def test_nyaa_preserves_labels_and_explicit_flags(self):
+        value = extension()
+        value['magnets'][0].update(tags=['高清', '字幕'], hd=True, mosaic=False, uncensored='false')
+        response = await self.call(lambda r: httpx.Response(200, json={'success': True, 'data': value}), '/api/torrents/nyaa')
+        item = response.json()['data'][0]
+        self.assertEqual(item['tags'], ['高清', '字幕'])
+        self.assertIs(item['upstream_flags']['hd'], True)
+        self.assertIs(item['upstream_flags']['mosaic'], False)
+        self.assertNotIn('uncensored', item['upstream_flags'])
+        self.assertNotIn('hd', item)
+
     async def test_special_codes_are_queried_even_without_movie_metadata(self):
         for keyword, code in [('fc2-ppv-123', 'FC2-PPV-123'), ('259luxu123', '259LUXU123'),
                               ('TEST-123-C', 'TEST-123-C')]:
