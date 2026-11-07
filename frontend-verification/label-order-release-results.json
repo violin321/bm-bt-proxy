@@ -1,0 +1,166 @@
+{
+  "stage": {
+    "checked_at_utc": "2026-11-07T06:09:49.770197+00:00",
+    "version": "1.6.0",
+    "revision": "875857d42411f28636398a59bcd6871f1042e14f",
+    "image": "violin321/bm-bt-proxy@sha256:314c3649019e294e8e071762c4a2ebd1cd93d7a1b4921486d68ae8a12be13842",
+    "image_id": "sha256:a62d0270b363c2dbabee1819f82721f64493f9c64125e1a4d9d0f002e4a66c29",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "label_count": 13,
+    "label_counts_by_source": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 3
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 0
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 5
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 4
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 1
+      }
+    ],
+    "mixed_rules_checked": true,
+    "restart_retains_cache": true,
+    "old_cookie_valid_after_restart": true,
+    "actual_consumer_schema": true,
+    "production_unchanged": true,
+    "config_sha256": "ec21255fb1a4ab4a369b535d328821f447c9f0fd95300eb0f6ee26abd30cc5fc",
+    "preferences_restored": []
+  },
+  "production": {
+    "checked_at_utc": "2026-11-07T06:10:55.100887+00:00",
+    "version": "1.6.0",
+    "revision": "875857d42411f28636398a59bcd6871f1042e14f",
+    "image": "violin321/bm-bt-proxy@sha256:314c3649019e294e8e071762c4a2ebd1cd93d7a1b4921486d68ae8a12be13842",
+    "image_id": "sha256:a62d0270b363c2dbabee1819f82721f64493f9c64125e1a4d9d0f002e4a66c29",
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "public_counts": {
+      "/api/torrents": 26,
+      "/bt/api": 8
+    },
+    "label_count": 13,
+    "label_counts_by_source": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 3
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 0
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 5
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 4
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 1
+      }
+    ],
+    "config_bytes_unchanged": true,
+    "api_credentials_unchanged": true,
+    "old_cookie_valid": true,
+    "history_before": 168,
+    "history_after": 171,
+    "original_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "unrelated_containers_unchanged": true,
+    "indexer": "knaben",
+    "preferences": [],
+    "backup": "/root/docker/bm-bt-proxy-releases/1.6.0-20261107/backup-061017",
+    "consumer_schema_validated": true,
+    "downloads": 0,
+    "subscriptions": 0,
+    "final_history_count": 173,
+    "final_label_count": 15,
+    "final_label_counts_by_source": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 4
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 0
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 6
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 4
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 1
+      }
+    ],
+    "stage_removed": true,
+    "rollback_retained": true,
+    "final_checked_at_utc": "2026-11-07T06:12:40.859404+00:00"
+  },
+  "browser": {
+    "checkedAt": "2026-11-07T06:11:55.785Z",
+    "checks": [
+      "public production Edge displays persistent labels from all five configured sources",
+      "live tag filtering and mixed-rule draft work without saving production preferences",
+      "real 1440px label inventory fits without overflow",
+      "real 390px label inventory fits without overflow",
+      "public Edge SNOS-381 search succeeds with all five sources after deployment",
+      "zero uncaught Edge exceptions; configuration and default-off preferences unchanged"
+    ],
+    "errors": [],
+    "browser": "Microsoft Edge",
+    "publicProduction": true,
+    "physicalPhone": false,
+    "settingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "sourceCount": 5,
+    "uniqueCount": 8,
+    "labelCount": 15
+  },
+  "local_checks": {
+    "backend": 48,
+    "edge_flows": 8,
+    "original_tag_browser_flows": 6
+  }
+}
