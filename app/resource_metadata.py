@@ -3,7 +3,7 @@ import re
 import unicodedata
 from collections import Counter
 
-LABEL_FIELDS = ("tags", "labels", "category", "categories", "genres")
+LABEL_FIELDS = ("tags", "labels", "category", "categories", "genres", "category_ids")
 FLAG_FIELDS = ("free", "chinese", "c_sub", "uc", "uncensored", "uhd", "hd", "mosaic")
 
 
@@ -32,9 +32,25 @@ def label_values(value):
     return labels
 
 
+def category_ids(value):
+    """Keep Torznab IDs exact; reject bools, malformed and unbounded values."""
+    values = value[:128] if isinstance(value, list) else [value]
+    result = []
+    for entry in values:
+        if type(entry) not in (int, str) or not re.fullmatch(r"[1-9][0-9]{0,9}", str(entry)):
+            continue
+        if int(entry) > 2147483647:
+            continue
+        text = str(entry)
+        if text not in result:
+            result.append(text)
+    return result
+
+
 def item_labels(item):
     return [{"field": field, "value": label}
-            for field in LABEL_FIELDS for label in label_values(item.get(field))]
+            for field in LABEL_FIELDS
+            for label in (category_ids(item.get(field)) if field == "category_ids" else label_values(item.get(field)))]
 
 
 def summarize_resources(items):

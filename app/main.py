@@ -30,6 +30,7 @@ from app.providers import fetch_source
 from app.aggregation import merge_results
 from app.resource_metadata import summarize_resources
 from app.label_catalog import LabelCatalog
+from app.upstream_catalog import CatalogSync, catalog_key
 from app.version import VERSION, REVISION
 from pydantic import ValidationError
 
@@ -56,6 +57,8 @@ def generate_cookie_token() -> str:
 settings: AppSettings = load_settings()
 request_stats = RequestStats(os.path.join(DATA_DIR, "requests.sqlite3"))
 label_catalog = LabelCatalog(os.path.join(DATA_DIR, "resource-labels.sqlite3"))
+catalog_sync = CatalogSync(label_catalog, lambda: list(settings.sources))
+catalog_schedule_task = None
 
 
 def is_authenticated(request: Request) -> bool:
@@ -95,10 +98,22 @@ def verify_api_key(token: Optional[str] = Query(default=None), x_api_key: Option
 
 @app.on_event("startup")
 async def startup_event():
-    global settings
+    global settings, catalog_schedule_task
     settings = load_settings()
     await asyncio.to_thread(label_catalog.reconcile, lambda: list(settings.sources))
+    catalog_schedule_task = asyncio.create_task(catalog_sync.schedule())
     logger.info(f"Initialized with {len(settings.sources)} sources")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    if catalog_schedule_task:
+        catalog_schedule_task.cancel()
+        try:
+            await catalog_schedule_task
+        except asyncio.CancelledError:
+            pass
+    await catalog_sync.close()
 
 
 @app.get("/favicon.svg")
@@ -165,9 +180,21 @@ async def get_version():
 async def get_resource_labels():
     sources = [source.model_copy(deep=True) for source in settings.sources]
     try:
-        return await asyncio.to_thread(label_catalog.overview, sources)
-    except (OSError, sqlite3.Error):
+        value = await asyncio.to_thread(label_catalog.overview, sources)
+        value["refreshing"] = catalog_sync.refreshing
+        return value
+    except (OSError, sqlite3.Error, ValueError):
         raise HTTPException(503, "暂时无法读取资源标签，请检查数据目录后重试") from None
+
+
+@app.post("/api/resource-labels/refresh", status_code=202, dependencies=[Depends(require_auth)])
+async def refresh_resource_labels(body: Dict[str, Any] = Body(default={})):
+    source_id = body.get("source_id", "all")
+    if not isinstance(source_id, str) or (source_id != "all" and not any(
+            s.id == source_id and s.enabled for s in settings.sources)):
+        raise HTTPException(422, "请选择有效且已启用的数据源")
+    catalog_sync.start(source_id)
+    return {"refreshing": True}
 
 
 @app.get("/api/stats", dependencies=[Depends(require_auth)])
@@ -221,25 +248,29 @@ async def get_sources():
 def parse_source(data, previous=None):
     data = dict(data)
     data.pop("has_jackett_api_key", None)
+    data.pop("has_catalog_headers", None)
+    # Revisions belong to the server, not an editable request body.
+    data.pop("catalog_revision", None)
     if previous is not None:
         data = {**previous.model_dump(), **data}
     if not isinstance(data.get("url"), str):
         raise HTTPException(422, "请填写有效的 HTTP / HTTPS 地址")
     data["url"] = clean_url(data.get("url", ""))
-    raw_headers = data.get("headers", {})
-    if not isinstance(raw_headers, (dict, str)):
-        raise HTTPException(422, "请求头需为 JSON 对象或 Token")
-    if isinstance(raw_headers, dict) and any(not isinstance(v, str) for v in raw_headers.values()):
-        raise HTTPException(422, "请求头值必须为字符串")
-    if isinstance(raw_headers, str) and raw_headers.strip().startswith(("{", "[")):
-        import json
-        try:
-            parsed = json.loads(raw_headers)
-            if not isinstance(parsed, dict) or any(not isinstance(v, str) for v in parsed.values()):
-                raise ValueError()
-        except ValueError:
-            raise HTTPException(422, "请求头 JSON 格式无效") from None
-    data["headers"] = clean_headers(raw_headers)
+    for field in ("headers", "catalog_headers"):
+        raw_headers = data.get(field, {})
+        if not isinstance(raw_headers, (dict, str)):
+            raise HTTPException(422, "请求头需为 JSON 对象或 Token")
+        if isinstance(raw_headers, dict) and any(not isinstance(v, str) for v in raw_headers.values()):
+            raise HTTPException(422, "请求头值必须为字符串")
+        if isinstance(raw_headers, str) and raw_headers.strip().startswith(("{", "[")):
+            import json
+            try:
+                parsed = json.loads(raw_headers)
+                if not isinstance(parsed, dict) or any(not isinstance(v, str) for v in parsed.values()):
+                    raise ValueError()
+            except ValueError:
+                raise HTTPException(422, "请求头 JSON 格式无效") from None
+        data[field] = clean_headers(raw_headers)
     if previous is None:
         data.pop("id", None)
         if data.get("source_type") == "jackett":
@@ -304,8 +335,10 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
             new_config.pop("config_revision", None)
             updated.config_revision = secrets.token_hex(8) if old_config != new_config else source.config_revision
             settings.sources[i] = updated
+            if (source.catalog_mode, source.catalog_headers) != (updated.catalog_mode, updated.catalog_headers):
+                updated.catalog_revision = secrets.token_hex(8)
             save_settings(settings)
-            if source_key(source) != source_key(updated):
+            if source_key(source) != source_key(updated) or catalog_key(source) != catalog_key(updated):
                 await asyncio.to_thread(label_catalog.reconcile, lambda: list(settings.sources))
             return public_source(updated)
     raise HTTPException(404, "Source not found")

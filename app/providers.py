@@ -8,7 +8,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 from app.aggregation import canonical_btih, dedup_key
-from app.resource_metadata import label_values
+from app.resource_metadata import label_values, category_ids
 
 
 def jackett_path(source, suffix=""):
@@ -61,6 +61,7 @@ def jackett_items(rows):
                       "free": row.get("DownloadVolumeFactor") == 0,
                       "upstream_flags": {},
                       "category": label_values(row.get("CategoryDesc")),
+                      "category_ids": [int(value) for value in category_ids(row.get("Category"))],
                       "tags": label_values(row.get("Label")),
                       "genres": label_values(row.get("Genres"))})
     return items, skipped

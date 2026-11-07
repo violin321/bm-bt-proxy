@@ -335,15 +335,15 @@
                 ></p>
               </form>
               <section class="settings-section label-catalog-section" aria-labelledby="labelCatalogHeading">
-                <div class="section-heading"><h3 id="labelCatalogHeading">已发现的资源标签</h3><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button></div>
-                <p class="muted small">从各源实际返回的资源中累计，刷新页面后仍可查看。这里是已发现的标签，不是源的完整目录；点击标签可添加排序规则。</p>
+                <div class="section-heading"><h3 id="labelCatalogHeading">资源标签目录</h3><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
+                <p class="muted small">优先读取源提供的分类目录，再补充实际搜索发现的标签。每项标明来源与覆盖范围；点击标签可添加排序规则。</p>
                 <div class="label-catalog-tools">
                   <label class="field" for="labelCatalogSource">来源<select id="labelCatalogSource"><option value="*">全部数据源</option></select></label>
                   <label class="field" for="labelCatalogFilter">查找标签<input id="labelCatalogFilter" type="search" placeholder="如 字幕、无码破解、UHD" maxlength="80" /></label>
                 </div>
                 <p id="labelCatalogStatus" class="small muted" role="status">正在读取标签缓存…</p>
                 <div id="labelCatalog" class="label-catalog"></div>
-                <p class="hint label-catalog-note">累计次数包含多次查询的重复命中。90 天未再次发现的标签会清理，每源最多 200 项；刷新列表只读取缓存，不会扫描上游。</p>
+                <p class="hint label-catalog-note">刷新列表只读取缓存；同步源目录会逐个读取源的目录接口，不会扫描全部资源。目录每源最多 1000 项；搜索发现的标签最多 200 项，90 天未再次发现会清理。累计命中次数包含多次查询的重复结果。</p>
               </section>
               <form id="preferencesForm" class="settings-section preference-section">
                 <div class="section-heading"><h3>标签与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
@@ -353,11 +353,11 @@
                   <div id="preferenceRules" class="preference-rules"></div>
                   <div class="label-rule-builder">
                     <h4>添加文字标签规则</h4>
-                    <p class="hint">从已发现的标签选择，也可手动填写。按完整标签匹配，忽略大小写和全角半角；不同含义的标签需分别添加。最多 24 条规则。</p>
+                    <p class="hint">从目录或已发现标签中选择，也可手动填写。文字按完整标签匹配；Jackett 分类按数字 ID 匹配，不把分类名称当作资源标签。最多 24 条规则。</p>
                     <div class="label-rule-fields">
                       <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
                       <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
-                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">标签 · tags</option><option value="labels">标签 · labels</option><option value="category">分类 · category</option><option value="categories">分类 · categories</option><option value="genres">风格 · genres</option></select></label>
+                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">标签 · tags</option><option value="labels">标签 · labels</option><option value="category">分类 · category</option><option value="categories">分类 · categories</option><option value="genres">风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
                       <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
                     </div>
                     <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>
@@ -485,6 +485,15 @@
               >支持字符串值的 JSON 对象；直接粘贴 Token 时作为 X-API-Key。</span
             ></label
           >
+          <div class="form-divider"></div>
+          <div class="drawer-section-heading"><span class="step-label">03</span><h3>资源标签目录</h3></div>
+          <label class="field" for="formCatalogMode">目录同步<select id="formCatalogMode"><option value="auto">自动识别目录接口</option><option value="disabled">不读取源目录</option></select><span class="hint">目录与搜索独立。没有目录的源仍会累计搜索发现的标签。</span></label>
+          <div id="catalogAuthFields" class="catalog-auth-fields">
+            <div class="header-editor-tools"><span class="small muted">目录接口专用认证</span><button id="revealCatalogHeadersBtn" class="btn subtle" type="button" aria-pressed="false">显示值</button></div>
+            <label class="field" for="formCatalogHeaders">目录认证请求头<textarea id="formCatalogHeaders" class="concealed-value" rows="4" autocomplete="off" spellcheck="false" placeholder='{"Cookie": "..."}'></textarea><span id="catalogHeadersHint" class="hint">仅在目录需要登录时填写 JSON 对象；与搜索请求头分开保存，不回显已保存值。</span></label>
+            <label class="check-line"><input id="clearCatalogHeaders" type="checkbox" />清除已保存的目录认证请求头</label>
+            <p class="hint">目录返回 401 时，请填写该源目录接口需要的登录 Cookie 或 Authorization。搜索可用不表示目录允许匿名访问。</p>
+          </div>
           <div id="sourceError" class="notice error" role="alert" hidden></div>
         </div>
         <footer class="dialog-foot">
