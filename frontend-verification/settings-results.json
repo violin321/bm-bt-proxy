@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "authenticated runtime version, header shortcut and build revision",
+    "version failure is explicit and retry recovers",
+    "settings separate Byte-Muse connection from BM-BT rules and describe four resource tags",
+    "Compose clipboard preserves special credentials and Docker interpolation; secrets stay masked",
+    "custom base paths are retained and invalid service URLs block copying",
+    "result tag counts include freeleech and match explicit boolean flags",
+    "settings and version fit 1440/768/390/360px without page overflow",
+    "zero uncaught browser exceptions"
+  ],
+  "errors": [],
+  "localOnly": true,
+  "syntheticSearch": true
+}

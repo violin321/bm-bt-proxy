@@ -27,13 +27,14 @@ from app.config import (
 from app.stats import RequestStats
 from app.providers import fetch_source
 from app.aggregation import merge_results
+from app.version import VERSION, REVISION
 from pydantic import ValidationError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-app = FastAPI(title="BM-BT-Proxy", version="1.5.0")
+app = FastAPI(title="BM-BT-Proxy", version=VERSION)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
@@ -148,6 +149,11 @@ async def get_settings():
     value = settings.model_dump(exclude={"sources"})
     value["sources"] = [public_source(s) for s in settings.sources]
     return value
+
+
+@app.get("/api/version", dependencies=[Depends(require_auth)])
+async def get_version():
+    return {"version": VERSION, "revision": REVISION}
 
 
 @app.get("/api/stats", dependencies=[Depends(require_auth)])

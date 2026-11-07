@@ -63,7 +63,7 @@ const checked = name => {checks.push(name);console.log('PASS',name);};
   await page.getByText('排序与去重说明',{exact:false}).click();
   assert((await page.locator('#mergeExplanation').textContent()).includes('标签偏好关闭'));
   checked('real search partial outcome, internal indexer diagnostics, skipped torrent and ordering explanation');
-  await page.getByRole('link',{name:'接入设置',exact:true}).click();
+  await page.getByRole('link',{name:'设置',exact:true}).click();
   await page.getByLabel('中文字幕偏好').selectOption('chinese');await page.getByLabel('UC / 无码偏好').selectOption('uc');
   await page.getByRole('button',{name:'上移UC / 无码',exact:true}).click();
   await page.getByRole('button',{name:'保存返回顺序',exact:true}).click();
@@ -86,7 +86,7 @@ const checked = name => {checks.push(name);console.log('PASS',name);};
    await page.getByRole('button',{name:'键值编辑',exact:true}).click();
    await page.getByLabel('请求头值',{exact:true}).fill('fixture-value');
    await page.keyboard.press('Escape');
-   await page.getByRole('link',{name:'接入设置',exact:true}).click();
+   await page.getByRole('link',{name:'设置',exact:true}).click();
    assert(await page.getByRole('button',{name:'保存返回顺序',exact:true}).isVisible());
   }
   checked('desktop and 390/360px source drawer and preference controls fit the viewport');

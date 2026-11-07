@@ -1,7 +1,8 @@
 FROM python:3.11-alpine
 
 ARG VCS_REF=unknown
-LABEL org.opencontainers.image.version="1.5.0" \
+ENV BM_BUILD_REVISION=$VCS_REF
+LABEL org.opencontainers.image.version="1.5.1" \
       org.opencontainers.image.revision=$VCS_REF \
       org.opencontainers.image.source="https://github.com/violin321/bm-bt-proxy"
 
