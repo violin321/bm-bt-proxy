@@ -48,6 +48,17 @@ class Mapping(unittest.TestCase):
         self.assertTrue(items[0]['chinese'] and items[0]['uhd'])
         self.assertEqual(items[0]['preview_image'], 'https://example.test/cover.jpg')
 
+    def test_original_tags_survive_without_private_tag_metadata(self):
+        value = movie()
+        value['magnets'][0]['tags'] = ['字幕', '高清', '破解', 'LTX',
+            {'name': 'UHD', 'token': 'private'}, '字幕', {'name': 'https://private/?key=secret'}, 123]
+        item = adapter.resources(value)[0]
+        self.assertEqual(item['tags'], ['字幕', '高清', '破解', 'LTX', 'UHD'])
+        self.assertTrue(item['chinese'])
+        self.assertNotIn('private', json.dumps(item))
+        value['magnets'][0].update(name='TEST-123 无字幕', tags=['无字幕'])
+        self.assertFalse(adapter.resources(value)[0]['chinese'])
+
     def test_invalid_resource_schema_is_an_error_but_empty_lists_are_valid(self):
         for value in [None, {}, {'magnets': {'items': []}}]:
             with self.assertRaises(adapter.UpstreamError):

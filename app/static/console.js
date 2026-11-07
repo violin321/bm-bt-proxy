@@ -1116,14 +1116,68 @@
     );
     return (n / 1024 ** i).toFixed(1) + " " + ["B", "KB", "MB", "GB", "TB"][i];
   }
+  const upstreamLabelFields = {tags: "标签", labels: "标签", category: "分类", categories: "分类", genres: "风格"};
+  function upstreamLabels(item) {
+    const labels = [];
+    for (const field of Object.keys(upstreamLabelFields)) {
+      const value = item[field];
+      const values = Array.isArray(value) ? value.slice(0, 32) : [value];
+      const seen = new Set();
+      for (let entry of values) {
+        if (entry && typeof entry === "object" && !Array.isArray(entry)) entry = entry.name || entry.label;
+        if (typeof entry !== "string") continue;
+        const text = entry.replace(/\s+/g, " ").trim();
+        if (!text || text.length > 80 || /https?:\/\/|magnet:|ed2k:|[\x00-\x1f\x7f]|(?:token|passkey|api[_-]?key|authorization|cookie)\s*[:=]/i.test(text) || seen.has(text)) continue;
+        seen.add(text);labels.push({field, value: text});
+      }
+    }
+    return labels;
+  }
+  function renderUpstreamTags() {
+    const inventory = $("sourceTagInventory");inventory.replaceChildren();
+    if (!state.details.length) inventory.append(el("p", "small muted", "本次没有源标签明细，请重新测试查看。"));
+    for (const source of state.details) {
+      const row = el("article", "source-tag-row");
+      const heading = el("div", "source-tag-name");
+      heading.append(el("strong", "", source.name || "未命名数据源"), el("span", "small muted", `${source.count ?? 0} 条 · 去重前`));
+      const body = el("div", "source-tag-body");
+      const metadata = source.resource_metadata;
+      if (!source.success) body.append(el("p", "small muted", "查询失败，无法判断该源的标签。"));
+      else if (!metadata) body.append(el("p", "small muted", "本次没有标签明细，请重新测试。"));
+      else {
+        const tags = el("div", "tags");
+        for (const label of metadata.labels || []) {
+          const tag = el("span", "tag", `${upstreamLabelFields[label.field] || label.field} · ${label.value} ${label.count}`);
+          tag.title = `原始字段 ${label.field}；本次 ${label.count} 条记录包含此值`;
+          tags.append(tag);
+        }
+        if (tags.childElementCount) body.append(tags);
+        else body.append(el("p", "small muted", source.count ? "本次未提供文字标签或分类。" : "本次没有返回资源，无法判断标签。"));
+        if (metadata.labels_limited) body.append(el("p", "hint", "标签较多，仅列出本次最常见的 120 项。"));
+        const fields = Object.entries(metadata.flags || {});
+        if (fields.length) {
+          const flags = el("details", "source-flag-details");
+          flags.append(el("summary", "", "查看原始属性字段"));
+          const list = el("div", "tags");
+          for (const [field, counts] of fields) {
+            const tag = el("span", "tag", `${field}: true ${counts.true} / false ${counts.false}`);
+            tag.title = "只统计上游明确返回的布尔值，缺少字段不算 false。";list.append(tag);
+          }
+          flags.append(list);body.append(flags);
+        }
+      }
+      row.append(heading, body);inventory.append(row);
+    }
+  }
   function renderResults() {
-    const inventory = $("resultTags");inventory.replaceChildren(el("span", "", "本次资源标签"));
+    renderUpstreamTags();
+    const inventory = $("resultTags");inventory.replaceChildren();
     for (const [key, name] of Object.entries(preferenceNames)) {
       const count = state.results.filter(item => resourceFlag(item, key)).length;
       const tag = el("span", "tag" + (count ? " positive" : ""), `${name} ${count}`);
       tag.title = preferenceHelp[key];inventory.append(tag);
     }
-    inventory.append(el("span", "hint", "按上游标记统计，同一结果可有多个标签。"));
+    inventory.append(el("span", "hint", "统计去重后结果的四项排序属性；上方保留各源返回的文字标签和分类。"));
     const container = $("cardView");
     container.replaceChildren();
     if (!state.results.length) {
@@ -1184,6 +1238,15 @@
         el("h3", "", item.title || item.name || "未命名结果"),
         meta,
       );
+      const labels = upstreamLabels(item);
+      if (labels.length) {
+        const rawTags = el("div", "tags result-upstream-labels");
+        for (const label of labels) {
+          const tag = el("span", "tag", `${upstreamLabelFields[label.field]} · ${label.value}`);
+          tag.title = `上游原始字段 ${label.field}`;rawTags.append(tag);
+        }
+        body.append(rawTags);
+      }
       const link =
         typeof item.magnet === "string" && item.magnet.trim()
           ? item.magnet

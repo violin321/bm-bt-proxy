@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "all five upstream label inventories remain visible before aggregation deduplication",
+    "original labels, exact boolean fields and aggregate sorting attributes are separate",
+    "untrusted tag text stays inert; URL-bearing values are excluded and 80-character labels wrap at four widths",
+    "empty and failed sources do not claim that their complete tag catalogs are known",
+    "settings point to actual upstream labels and sorting preferences remain off",
+    "zero uncaught browser exceptions"
+  ],
+  "errors": [],
+  "syntheticSearch": true,
+  "localOnly": true
+}

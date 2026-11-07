@@ -27,6 +27,7 @@ from app.config import (
 from app.stats import RequestStats
 from app.providers import fetch_source
 from app.aggregation import merge_results
+from app.resource_metadata import summarize_resources
 from app.version import VERSION, REVISION
 from pydantic import ValidationError
 
@@ -337,7 +338,8 @@ async def test_search(body: Dict[str, Any] = Body(...)):
         return {"data": [], "details": [], "total_time_ms": 0}
 
     targets, results, merged, elapsed = await run_search(targets, str(keyword))
-    details = [{k: v for k, v in result.items() if k != "items"} for result in results]
+    details = [{**{k: v for k, v in result.items() if k != "items"},
+                "resource_metadata": summarize_resources(result["items"])} for result in results]
     await asyncio.to_thread(request_stats.record, "test", str(keyword), targets, results, len(merged["data"]), elapsed)
     return {**merged, "details": details, "total_time_ms": elapsed}
 

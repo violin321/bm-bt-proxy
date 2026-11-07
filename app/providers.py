@@ -8,6 +8,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 from app.aggregation import canonical_btih, dedup_key
+from app.resource_metadata import label_values
 
 
 def jackett_path(source, suffix=""):
@@ -57,7 +58,11 @@ def jackett_items(rows):
                       "chinese": bool(re.search(r"中字|中文字幕|中文|\bchs\b|\bchinese\b", lower)),
                       "uc": bool(re.search(r"无码|無碼|破解|\buncensored\b|\buc\b", lower)),
                       "uhd": bool(re.search(r"\b4k\b|\b8k\b|\b2160p\b|\buhd\b", lower)),
-                      "free": row.get("DownloadVolumeFactor") == 0})
+                      "free": row.get("DownloadVolumeFactor") == 0,
+                      "upstream_flags": {},
+                      "category": label_values(row.get("CategoryDesc")),
+                      "tags": label_values(row.get("Label")),
+                      "genres": label_values(row.get("Genres"))})
     return items, skipped
 
 

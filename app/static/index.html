@@ -218,7 +218,12 @@
                   <button id="copyJson" class="btn subtle">复制 JSON</button>
                 </div>
               </div>
-              <div id="resultTags" class="result-tags" aria-label="本次结果的资源标签"></div>
+              <section class="upstream-tags-section" aria-labelledby="upstreamTagsHeading">
+                <h3 id="upstreamTagsHeading">上游返回的标签</h3>
+                <p class="small muted">按源统计本次查询、去重前的记录。同一记录可有多个标签，不代表该源的全部标签。</p>
+                <div id="sourceTagInventory" class="source-tag-inventory"></div>
+              </section>
+              <details class="result-attributes"><summary>聚合结果的排序属性</summary><div id="resultTags" class="result-tags" aria-label="聚合结果的排序属性"></div></details>
               <div id="cardView" class="results"></div>
               <pre
                 id="jsonView"
@@ -330,8 +335,8 @@
                 ></p>
               </form>
               <form id="preferencesForm" class="settings-section preference-section">
-                <div class="section-heading"><h3>资源标签与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
-                <p class="muted small">可用资源标签如下。设为“优先”或“靠后”后，按编号依次比较，再比较源优先级；条件相同保留原顺序。Byte-Muse 会按自己的规则再次过滤、排序。</p>
+                <div class="section-heading"><h3>排序属性与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
+                <p class="muted small">这四项属性用于排序。各源实际返回的文字标签、分类及属性字段，可在“搜索与测试”的“上游返回的标签”查看。设为“优先”或“靠后”后，按编号依次比较，再比较源优先级；条件相同保留原顺序。Byte-Muse 会按自己的规则再次过滤、排序。</p>
                 <div id="preferenceRules" class="preference-rules"></div>
                 <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭标签偏好</button></div>
                 <p id="preferencesStatus" class="small" role="status"></p>
@@ -399,7 +404,7 @@
           </div>
           <div class="pair">
             <label class="field" for="formPriority">源优先级<input id="formPriority" type="number" min="0" max="9999" value="100" required /><span class="hint">数字越小越优先；相同优先级按配置顺序。</span></label>
-            <label class="field" for="formTags">分类标签<input id="formTags" placeholder="局域网, 公共, 聚合" /><span class="hint">自定义标签，逗号分隔，便于管理源。资源属性在“设置 → 资源标签与返回顺序”查看。</span></label>
+            <label class="field" for="formTags">分类标签<input id="formTags" placeholder="局域网, 公共, 聚合" /><span class="hint">自定义标签，逗号分隔，便于管理源。上游返回的资源标签在“搜索与测试”查看。</span></label>
           </div>
           <div id="jackettFields" hidden>
             <label class="field" for="formJackettKey">Jackett API Key<input id="formJackettKey" aria-label="Jackett API Key" type="password" autocomplete="new-password" placeholder="填写 Jackett 的 API Key" /><span id="jackettKeyHint" class="hint">仅在后端使用，不写入接入地址。</span></label>
