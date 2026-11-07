@@ -1,0 +1,83 @@
+{
+  "local_browser": {
+    "checks": [
+      "authenticated runtime version, header shortcut and build revision",
+      "version failure is explicit and retry recovers",
+      "settings separate Byte-Muse connection from BM-BT rules and describe four resource tags",
+      "Compose clipboard preserves special credentials and Docker interpolation; secrets stay masked",
+      "custom base paths are retained and invalid service URLs block copying",
+      "result tag counts include freeleech and match explicit boolean flags",
+      "settings and version fit 1440/768/390/360px without page overflow",
+      "zero uncaught browser exceptions"
+    ],
+    "errors": [],
+    "localOnly": true,
+    "syntheticSearch": true
+  },
+  "official_image_stage": {
+    "checked_at_utc": "2026-11-07T03:21:20.961272+00:00",
+    "image": "violin321/bm-bt-proxy@sha256:c51e7ab482ebf4cfe4f3de39f2595ec7db2b89b12acee4ce95bebdcd5b93dd2e",
+    "image_id": "sha256:bbeb70f5f8221c29f54dd9ccaa3a7b570c6356ca1e245d97f8197f5a8c7b00dd",
+    "revision": "e89b62f8c42eba83b65c62a5630875fb2c210304",
+    "version": "1.5.1",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "backend_contracts": 17,
+    "statistics_contracts": 8,
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "time_ms": 7419,
+    "runtime_version_matches_build": true,
+    "version_authenticated": true,
+    "production_unchanged": true
+  },
+  "production": {
+    "checked_at_utc": "2026-11-07T03:22:20.245967+00:00",
+    "version": {
+      "version": "1.5.1",
+      "revision": "e89b62f8c42eba83b65c62a5630875fb2c210304"
+    },
+    "image": "violin321/bm-bt-proxy@sha256:c51e7ab482ebf4cfe4f3de39f2595ec7db2b89b12acee4ce95bebdcd5b93dd2e",
+    "image_id": "sha256:bbeb70f5f8221c29f54dd9ccaa3a7b570c6356ca1e245d97f8197f5a8c7b00dd",
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "public_count": 26,
+    "time_ms": 2382,
+    "config_bytes_unchanged": true,
+    "api_credentials_unchanged": true,
+    "old_cookie_valid": true,
+    "history_before": 96,
+    "history_after": 98,
+    "original_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "unrelated_containers_unchanged": true,
+    "scope": "knaben",
+    "downloads": 0,
+    "subscriptions": 0,
+    "stage_removed": true,
+    "rollback_retained": true
+  },
+  "production_browser": {
+    "checks": [
+      "real runtime version/build matches published image; five sources and Knaben preserved",
+      "real 1440px settings, readable masked Compose, four tag descriptions and default-off preferences",
+      "real 390px settings, readable masked Compose, four tag descriptions and default-off preferences",
+      "zero uncaught browser exceptions; no settings saved or clipboard credentials copied"
+    ],
+    "errors": [],
+    "realProduction": true,
+    "physicalPhone": false,
+    "settingsChanged": false,
+    "clipboardCredentialsCopied": false
+  },
+  "limitations": [
+    "No physical-phone or long-term stability validation",
+    "No downloads, subscriptions, or Byte-Muse configuration changes",
+    "Jackett scope remains Knaben; previous all-indexer timeout limitation unchanged"
+  ]
+}
