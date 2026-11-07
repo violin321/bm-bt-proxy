@@ -335,10 +335,11 @@
                 ></p>
               </form>
               <section class="settings-section label-catalog-section" aria-labelledby="labelCatalogHeading">
-                <div class="section-heading"><h3 id="labelCatalogHeading">资源标签目录</h3><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
-                <p class="muted small">优先读取源提供的分类目录，再补充实际搜索发现的标签。每项标明来源与覆盖范围；点击标签可添加排序规则。</p>
+                <div class="section-heading"><h3 id="labelCatalogHeading">分类与标签目录</h3><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
+                <p class="muted small">分别查看影片风格、源分类和磁链标签。点击一项加入该来源、该字段的排序草稿，保存后生效。</p>
                 <div class="label-catalog-tools">
                   <label class="field" for="labelCatalogSource">来源<select id="labelCatalogSource"><option value="*">全部数据源</option></select></label>
+                  <label class="field" for="labelCatalogKind">内容类型<select id="labelCatalogKind"><option value="*">全部类型</option><option value="genres">影片风格</option><option value="categories">源分类</option><option value="tags">磁链标签</option></select></label>
                   <label class="field" for="labelCatalogFilter">查找标签<input id="labelCatalogFilter" type="search" placeholder="如 字幕、无码破解、UHD" maxlength="80" /></label>
                 </div>
                 <p id="labelCatalogStatus" class="small muted" role="status">正在读取标签缓存…</p>
@@ -353,11 +354,11 @@
                   <div id="preferenceRules" class="preference-rules"></div>
                   <div class="label-rule-builder">
                     <h4>添加文字标签规则</h4>
-                    <p class="hint">从目录或已发现标签中选择，也可手动填写。文字按完整标签匹配；Jackett 分类按数字 ID 匹配，不把分类名称当作资源标签。最多 24 条规则。</p>
+                    <p class="hint">从目录或已发现标签中选择，也可手动填写。文字按完整标签匹配；Jackett 分类按数字 ID 匹配。影片风格适合多影片结果排序，同片磁链共享风格，具体规格仍以磁链属性为准。最多 24 条规则。</p>
                     <div class="label-rule-fields">
                       <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
                       <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
-                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">标签 · tags</option><option value="labels">标签 · labels</option><option value="category">分类 · category</option><option value="categories">分类 · categories</option><option value="genres">风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
+                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">磁链标签 · tags</option><option value="labels">标签 · labels</option><option value="category">源分类 · category</option><option value="categories">源分类 · categories</option><option value="genres">影片风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
                       <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
                     </div>
                     <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>

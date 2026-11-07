@@ -91,7 +91,7 @@
 .version-section>.text-link {display:inline-flex;margin-top:14px;}
 .label-catalog-section {grid-column:1 / -1;}
 .catalog-actions {display:flex;flex-wrap:wrap;gap:8px;}
-.label-catalog-tools {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px;margin:20px 0 12px;}
+.label-catalog-tools {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.7fr) minmax(0,1.3fr);gap:16px;margin:20px 0 12px;}
 .label-catalog-tools .field,.label-rule-fields .field {margin:0;min-width:0;}
 .label-catalog-tools input,.label-catalog-tools select,.label-rule-fields input,.label-rule-fields select {width:100%;min-width:0;}
 .catalog-source {padding:18px 0;border-bottom:1px solid var(--line);}
@@ -108,6 +108,7 @@
 .catalog-tag:hover {border-color:var(--accent);background:var(--accent-soft);}
 .catalog-tag>span {min-width:0;overflow-wrap:anywhere;}
 .catalog-tag-field {font:10px var(--mono);color:var(--muted);}
+.catalog-tag[data-label-field=genres] .catalog-tag-field {font-family:var(--font);color:var(--accent);}
 .catalog-tag-origin {font-size:10px;color:var(--muted);border-left:1px solid var(--line);padding-left:7px;}
 .catalog-tag[data-label-origin=directory] .catalog-tag-origin,.catalog-tag[data-label-origin=both] .catalog-tag-origin {color:var(--accent);}
 .catalog-tag-count {font:10px var(--mono);color:var(--muted);padding-left:2px;}

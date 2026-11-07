@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-07T07:01:20.947Z",
+  "checkedAt": "2026-11-07T14:15:41.614Z",
   "browser": "Microsoft Edge",
   "checks": [
     "directory coverage, provenance, 401 retained snapshot and cache-only refresh are explicit",

@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-07T06:56:23.600Z",
+  "checkedAt": "2026-11-07T14:17:16.056Z",
   "browser": "Microsoft Edge",
   "checks": [
     "authenticated persistent catalog accumulates pre-dedup upstream tags without credential-bearing values",

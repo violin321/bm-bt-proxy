@@ -59,7 +59,17 @@ docker compose -p db-online --env-file .env ps
 
 上游单次请求超时为 10 秒，整个适配查询含排队最多 22 秒，同时处理最多两个查询。鉴权失败、非 JSON、无效结构和部分影片详情失败返回 502；超时返回 504，不伪装成成功零条。已确认的「未找到影片」返回空列表。资源按 BTIH／ED2K 哈希去重，并提供 Byte-Muse 必需的整数 ID、大小、标题与下载链接；ID 保持在 JavaScript 安全整数范围。
 
-following 和类别列表可用于 db_online 自己的发现／筛选页面。它们返回影片或分类，不能直接配置为 BM-BT 的种子源。本次没有向 BM-BT 添加分类浏览或风格筛选界面，也没有设置下载客户端或执行下载／订阅。
+### 影片风格与关键词排序（适配器 0.3.0）
+
+JavDB 关键词／番号搜索会把影片详情的 `categories[].name` 作为每条资源独立的 `genres` 返回，磁链自己的 `tags` 保持原样。影片风格中的“4K”“破解”不推导磁链的 `uhd/uc`，资源规格仍由该磁链原有信息决定。扩展库与 Nyaa 不增加影片详情请求，返回空 `genres`。
+
+`GET /api/catalog/genres` 只读取 DB Online 的 `/api/options/categories`，提供 Following 所用的风格名称集合。响应包含 `provider=db_online`、`coverage=cached_movies`、`labels` 和 `limited`。这是本地已缓存影片的风格集合，不是 JavDB 全站风格全集；最多 1000 个名称，逐条清洗，不会把整个目录截成单资源的 32 项限制。目录共用原请求并发限额，含排队最多 8 秒，失败返回固定脱敏的 502/504。
+
+配套 BM-BT 版本会自动尝试 `/api/torrents` 同路径下的 `/api/catalog/genres`，要求上述契约标记才接收目录，扩展入口不做此探测。设置 → 分类与标签目录 → 内容类型“影片风格”，点击风格会加入限定来源与 `genres` 字段的排序草稿，保存后生效。目录刷新与搜索独立；目录失败保留旧缓存，原磁链搜索继续工作。
+
+同一影片所有磁链共享影片风格，因此这种排序主要用于多影片关键词结果。同一番号下，仍需磁链标签或中字／无码／清晰度等资源属性区分各版本。已有跨源去重仍保留胜出源的数据，不从丢弃记录借用风格；没有风格的资源继续保留，规则默认关闭。Following 的最多 5 项属于它自己的发现筛选，本功能沿用 BM-BT 最多 24 条排序规则。
+
+Following 返回影片列表，不能直接配置为 BM-BT 的种子源；本功能只复用风格元数据，不读取 Following 列表或创建订阅、下载任务。接入需要同时更新 BM-BT 主程序和重建 `bt-adapter`；仅升级一方不会完成目录与搜索风格的完整闭环。
 
 ## 验证与维护
 
@@ -69,7 +79,7 @@ following 和类别列表可用于 db_online 自己的发现／筛选页面。�
 python -m unittest discover -s deploy/db-online/adapter -p 'test_*.py' -v
 ```
 
-需使用已安装 BM-BT 依赖的 Python 环境。测试涵盖 Byte-Muse 必需字段、编号、资源转换、去重、请求上限、未找到与鉴权错误的区分、部分失败、超时和对外错误脱敏。
+需使用已安装 BM-BT 依赖的 Python 环境。测试涵盖 Byte-Muse 必需字段、编号、资源转换、去重、请求上限、未找到与鉴权错误的区分、部分失败、超时和对外错误脱敏，以及影片风格与资源属性隔离、目录完整性和错误隔离。核心联调契约可运行 `PYTHONPATH=. python frontend-verification/dbonline-genres-contracts.py`。2026-11-07 候选验收与上线状态见 `docs/DBONLINE-GENRES-20261107.md`。
 
 升级前备份 `.env`、`data/` 和 PostgreSQL 逻辑备份。`cache/` 不作为数据库备份。应用版本升级先更新固定摘要，并单独验证本地 API Key、番号详情和 BM-BT 单源／聚合结果；不要直接将未经验证的 `latest` 提升为生产。
 

@@ -28,6 +28,10 @@ def catalog_provider(source):
         return "jackett_caps"
     if urlsplit(source.url).path.rstrip("/").endswith("/api/v1/articles/torrents"):
         return "article_categories"
+    # Probe only the JavDB adapter route. Extension routes have no movie genres.
+    # A matching URL alone is not evidence: the response must identify its contract.
+    if urlsplit(source.url).path.rstrip("/").endswith("/api/torrents"):
+        return "adapter_genres"
     return "none"
 
 
@@ -37,7 +41,7 @@ def clean_directory(labels):
         raise ValueError("目录必须为数组")
     rows, limited = {}, len(labels) > MAX_DIRECTORY_LABELS
     for row in labels[:10000]:
-        if not isinstance(row, dict) or row.get("field") not in {"category", "category_ids"}:
+        if not isinstance(row, dict) or row.get("field") not in {"category", "category_ids", "genres"}:
             limited = True
             continue
         field = row["field"]
@@ -91,6 +95,18 @@ def parse_jackett_caps(content):
                             for row in categories.iter() if row.tag in {"category", "subcat"}])
 
 
+def parse_adapter_genres(value):
+    if (not isinstance(value, dict) or value.get("provider") != "db_online" or
+            value.get("coverage") != "cached_movies" or
+            type(value.get("limited")) is not bool or not isinstance(value.get("labels"), list)):
+        raise ValueError("影片风格目录响应格式无效")
+    if any(not isinstance(row, dict) or row.get("field") != "genres" or
+           not isinstance(row.get("value"), str) for row in value["labels"]):
+        raise ValueError("影片风格目录字段无效")
+    labels, limited = clean_directory(value["labels"])
+    return labels, limited or value["limited"]
+
+
 async def fetch_directory(client, source):
     provider = catalog_provider(source)
     base = {"provider": provider, "status": "unsupported", "error": None}
@@ -107,7 +123,8 @@ async def fetch_directory(client, source):
             params = {"apikey": source.jackett_api_key, "t": "caps"}
         else:
             parsed = urlsplit(source.url)
-            path = parsed.path.rstrip("/").removesuffix("/torrents") + "/categories"
+            path = parsed.path.rstrip("/").removesuffix("/torrents")
+            path += "/catalog/genres" if provider == "adapter_genres" else "/categories"
             url = urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
         timeout = min(source.timeout, 8)
         async with asyncio.timeout(timeout):
@@ -124,10 +141,15 @@ async def fetch_directory(client, source):
                     content.extend(part)
                     if len(content) > MAX_DIRECTORY_BYTES:
                         raise ValueError("目录超过容量限制")
-        labels, limited = (parse_jackett_caps(bytes(content)) if provider == "jackett_caps"
-                           else parse_article_categories(json.loads(content)))
+        if provider == "jackett_caps":
+            labels, limited = parse_jackett_caps(bytes(content))
+        elif provider == "adapter_genres":
+            labels, limited = parse_adapter_genres(json.loads(content))
+        else:
+            labels, limited = parse_article_categories(json.loads(content))
         return {**base, "status": "ready", "labels": labels, "limited": limited,
-                "coverage": "declared_categories" if provider == "jackett_caps" else "current_database",
+                "coverage": {"jackett_caps": "declared_categories", "adapter_genres": "cached_movies",
+                             "article_categories": "current_database"}[provider],
                 "origin": "upstream"}
     except (TimeoutError, httpx.TimeoutException):
         return {**base, "status": "error", "error": "目录读取超时，保留上次成功目录。"}

@@ -840,7 +840,8 @@
   function ruleScope(rule) {
     if (typeof rule === "string") return preferenceHelp[rule.replace("!", "")] || "";
     const source = rule.source_id === "*" ? "全部数据源" : state.settings.sources.find(s => s.id === rule.source_id)?.name || "来源已删除，请移除此规则";
-    return `${source} · ${rule.field === "*" ? "任意标签字段" : rule.field} · 完整标签匹配`;
+    const field = rule.field === "*" ? "任意标签字段" : rule.field === "genres" ? "影片风格 · genres" : rule.field;
+    return `${source} · ${field} · 完整标签匹配`;
   }
   function ruleDescription(rule) {
     const prefer = typeof rule === "string" ? !rule.startsWith("!") : rule.direction === "prefer";
@@ -967,7 +968,7 @@
   }
   function directoryState(source) {
     const directory = source.directory || {provider: "none", status: "never", coverage: "observed_only"};
-    const coverage = {current_database: "当前源数据库中的分类", declared_categories: "站点声明支持的分类", observed_only: "仅搜索中已发现的标签"}[directory.coverage] || "源提供的目录";
+    const coverage = {current_database: "当前源数据库中的分类", declared_categories: "站点声明支持的分类", cached_movies: "仅 DB Online 已缓存影片的风格，不代表全站风格全集", observed_only: "仅搜索中已发现的标签"}[directory.coverage] || "源提供的目录";
     const statuses = {ready: "目录已同步", unauthorized: "目录需要登录权限", unsupported: "源未提供可读取目录", error: "目录同步失败", never: "目录尚未同步", disabled: "已关闭目录同步"};
     const status = statuses[directory.status] || "目录状态未知";
     let detail = coverage;
@@ -996,12 +997,12 @@
     message("labelCatalogStatus", stale, Boolean(state.catalogError || state.labelCatalog?.write_error));
     if (!state.labelCatalog) return;
     if (!sources.length) {box.append(el("p", "catalog-empty", "添加数据源后可同步目录；搜索返回的标签也会自动补充在这里。"));return;}
-    const filter = normalizedLabel($("labelCatalogFilter").value), scope = $("labelCatalogSource").value;
+    const filter = normalizedLabel($("labelCatalogFilter").value), scope = $("labelCatalogSource").value, kind = $("labelCatalogKind").value;
     let visible = 0;
     for (const source of sources) {
       if (scope !== "*" && source.id !== scope) continue;
-      const matching = source.labels.filter(label => !filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(label.display_name || "").includes(filter) || normalizedLabel(source.name).includes(filter));
-      if (filter && !matching.length) continue;
+      const matching = source.labels.filter(label => (kind === "*" || (kind === "genres" ? label.field === "genres" : kind === "tags" ? ["tags", "labels"].includes(label.field) : ["category", "categories", "category_ids"].includes(label.field))) && (!filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(label.display_name || "").includes(filter) || normalizedLabel(source.name).includes(filter)));
+      if ((filter || kind !== "*") && !matching.length) continue;
       visible++;
       const row = el("article", "catalog-source");
       row.dataset.catalogSource = source.id;
@@ -1010,6 +1011,7 @@
       const {directory, status, detail, hint} = directoryState(source);
       const statusTag = el("span", "catalog-directory-state", status);statusTag.dataset.status = directory.status;
       heading.append(title, statusTag);row.append(heading, el("p", "catalog-coverage", detail));
+      if (directory.coverage === "cached_movies") row.append(el("p", "catalog-directory-hint", "影片风格适合多影片关键词结果排序。同片磁链共享风格；风格中的 4K、破解等名称不会改变磁链的清晰度或无码属性。"));
       if (hint) row.append(el("p", "catalog-directory-hint" + (["unauthorized", "error"].includes(directory.status) ? " directory-warning" : ""), hint));
       const tags = el("div", "catalog-tags");
       const visibleCount = state.catalogVisibleCounts.get(source.id) || 12;
@@ -1023,9 +1025,10 @@
         tag.disabled = state.preferenceSaving;
         const origin = {directory: "源目录", observed: "已发现", both: "目录 + 已发现"}[label.origin] || "已发现";
         tag.dataset.labelOrigin = label.origin || "observed";
+        tag.dataset.labelField = label.field;
         tag.setAttribute("aria-label", `将 ${source.name} 的 ${label.field} 标签 ${labelCaption(label)} 加入排序`);
         tag.title = `${origin} · 字段 ${label.field} · 累计搜索命中 ${label.count || 0} 次${label.last_seen ? ` · 最近发现 ${labelDate(label.last_seen)}` : ""}`;
-        tag.append(el("span", "catalog-tag-field", label.field), el("span", "catalog-tag-name", labelCaption(label)), el("span", "catalog-tag-origin", origin));
+        tag.append(el("span", "catalog-tag-field", label.field === "genres" ? "影片风格" : label.field), el("span", "catalog-tag-name", labelCaption(label)), el("span", "catalog-tag-origin", origin));
         if (label.count) tag.append(el("span", "catalog-tag-count", `${label.count} 次`));
         if (label.catalog_count !== null && label.catalog_count !== undefined) tag.append(el("span", "catalog-tag-count", `库内 ${label.catalog_count}`));
         tag.append(el("span", "catalog-tag-add", "+"));tags.append(tag);
@@ -1043,12 +1046,13 @@
       if (source.labels_limited) row.append(el("p", "hint", "标签缓存已达到容量上限，部分较早的标签可能已被替换。"));
       box.append(row);
     }
-    if (!visible) box.append(el("p", "catalog-empty", "没有匹配的已发现标签，试试其他来源或关键词。"));
+    if (!visible) box.append(el("p", "catalog-empty", "没有匹配的目录项，试试其他来源、类型或关键词。"));
   }
   $("refreshLabelsBtn").onclick = loadLabelCatalog;
   $("syncLabelDirectoryBtn").onclick = syncLabelDirectory;
   window.addEventListener("pagehide", () => clearTimeout(state.catalogPollTimer));
   $("labelCatalogSource").onchange = renderLabelCatalog;
+  $("labelCatalogKind").onchange = renderLabelCatalog;
   $("labelCatalogFilter").oninput = renderLabelCatalog;
   $("sortLabelSource").onchange = renderLabelSuggestions;
   $("sortLabelField").onchange = renderLabelSuggestions;
@@ -1386,7 +1390,7 @@
     );
     return (n / 1024 ** i).toFixed(1) + " " + ["B", "KB", "MB", "GB", "TB"][i];
   }
-  const upstreamLabelFields = {tags: "标签", labels: "标签", category: "分类", categories: "分类", genres: "风格", category_ids: "分类 ID"};
+  const upstreamLabelFields = {tags: "标签", labels: "标签", category: "分类", categories: "分类", genres: "影片风格", category_ids: "分类 ID"};
   function upstreamLabels(item) {
     const labels = [];
     for (const field of Object.keys(upstreamLabelFields)) {
@@ -1497,7 +1501,8 @@
       if (origin) tags.append(el("span", "priority-tag", `${origin.source_name} · 优先级 ${origin.priority}`));
       for (const [key, name] of Object.entries(preferenceNames))
         if (resourceFlag(item, key)) {
-          const tag = el("span", "tag", name);tag.title = preferenceHelp[key];tags.append(tag);
+          const caption = key === "uhd" && item.uhd !== true ? "高清 · HD" : name;
+          const tag = el("span", "tag", caption);tag.title = preferenceHelp[key];tags.append(tag);
         }
       const meta = el("div", "meta");
       meta.append(
@@ -1515,7 +1520,8 @@
         const rawTags = el("div", "tags result-upstream-labels");
         for (const label of labels) {
           const tag = el("span", "tag", `${upstreamLabelFields[label.field]} · ${label.value}`);
-          tag.title = `上游原始字段 ${label.field}`;rawTags.append(tag);
+          tag.title = label.field === "genres" ? "上游原始字段 genres；同影片磁链共享，不代表该磁链的清晰度或无码属性" : `上游原始字段 ${label.field}`;
+          tag.dataset.labelField = label.field;rawTags.append(tag);
         }
         body.append(rawTags);
       }
