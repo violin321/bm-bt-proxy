@@ -1,0 +1,91 @@
+{
+  "checked_date": "2026-11-08",
+  "scope": "Read-only inspection of existing OVH consumers and pure synthetic filter/sort/selection tests; caller external effects replaced with mocks.",
+  "instances": {
+    "byte-muse": {
+      "bt_points_to_bm_named_host": false,
+      "bt_points_to_known_ovh": false,
+      "bt_path_is_standard_bm": false,
+      "default_filter_only_uc": false,
+      "default_filter_exclude_uhd": true
+    },
+    "byte-muse-bt-test": {
+      "bt_points_to_bm_named_host": true,
+      "bt_points_to_known_ovh": false,
+      "bt_path_is_standard_bm": true,
+      "default_filter_only_uc": false,
+      "default_filter_exclude_uhd": true
+    },
+    "actual_user_device": {
+      "tested": false,
+      "settings_changed": false
+    }
+  },
+  "synthetic_checks": {
+    "uc_sort_stability_permutation_and_main_site_checks": 360,
+    "filter_sort_combinations": 64,
+    "individual_filter_cases": 19,
+    "selection_trace_cases": 39,
+    "mocked_caller_cases": 21,
+    "none_false_caller_cases_without_effects": 7,
+    "candidate_false_caller_cases_attempting_mock_brush_download": 7,
+    "strict_selection_cases": 4,
+    "all_assertions_passed": true
+  },
+  "semantics": {
+    "uc_sort_preserves_order_within_uc": true,
+    "main_site_does_not_reorder_when_site_is_absent_from_sort": true,
+    "selection_order": [
+      "filter",
+      "sort_by_DEFAULT_SORT",
+      "first_candidate"
+    ],
+    "sort_source": "DEFAULT_SORT; tested code.filter sort/sort_by and code.sort did not override it.",
+    "nonempty_subscription_filter_json_replaces_default_filter": true,
+    "empty_subscription_filter_uses_default_filter": true,
+    "filter_keys": [
+      "only_chinese",
+      "only_uc",
+      "exclude_uc",
+      "only_uhd",
+      "only_free",
+      "exclude_uhd",
+      "include_keywords",
+      "exclude_keywords",
+      "min_size",
+      "max_size"
+    ],
+    "verified_boolean_filter_keys": [
+      "only_chinese",
+      "only_uc",
+      "exclude_uc",
+      "only_uhd",
+      "only_free",
+      "exclude_uhd"
+    ],
+    "size_limits_unit": "MiB, compared to size_mb; numeric strings accepted, strings with GB suffix raised ValueError.",
+    "size_boundaries_inclusive": true,
+    "filter_preserves_remaining_input_order": true,
+    "include_exclude_keyword_strings_in_direct_filter_function": "No effect observed in synthetic cases; not relied on for LTX selection.",
+    "strict_control": "Per-subscription code.mode must be exact uppercase STRICT. No global brush/strict control setting was found.",
+    "strict_all_candidates_fail": "find_torrent returns (None, false); caller skips download and all mocked persistence/notification effects.",
+    "nonstrict_all_candidates_fail": "find_torrent returns an unfiltered candidate with false; caller still attempts download as brush traffic.",
+    "qualified_ltx_available": "Retained as first selectable candidate when endpoint supplies LTX first and consumer DEFAULT_SORT is uc.",
+    "all_ltx_fail_but_other_uc_passes": "Other qualified UC selected; preserving fallback resources is necessary.",
+    "no_candidate_profile_claims": "No assertion of actual model quality or real download success.",
+    "subscription_mode_ui": {
+      "STRICT": "严格模式",
+      "PRELOAD": "预下载模式"
+    },
+    "subscription_mode_label_verified_from_packaged_frontend": true
+  },
+  "side_effects": {
+    "real_queries": 0,
+    "downloads": 0,
+    "subscriptions": 0,
+    "persistent_settings_changes": 0,
+    "real_database_writes": 0,
+    "real_notifications": 0,
+    "network_blocked_in_synthetic_processes": true
+  }
+}
