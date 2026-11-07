@@ -1,0 +1,105 @@
+{
+  "production": {
+    "checked_at_utc": "2026-11-07T14:43:20.077148+00:00",
+    "version": "1.8.0",
+    "adapter_version": "0.3.0",
+    "revision": "12da59c7785d06d7ec034f911cd9b43a1219db4b",
+    "bm_image": "violin321/bm-bt-proxy@sha256:65ab4eb89236cf758357a9e164122244b2a8a0cb133d24de928ee68657805ba6",
+    "bm_image_id": "sha256:4a533c0b402f687f7cdc4e40e7067019f17b3d1925b44551c4c0dff8c73bf937",
+    "adapter_image": "bm-db-online-adapter:0.3.0",
+    "adapter_image_id": "sha256:2d9bfc2b0391e63f56a39d2e5e870fbe290249b6bb4b0b5150cd6acd4d4f8be4",
+    "backup": "/root/docker/bm-bt-proxy-releases/1.8.0-20261107/backup-144210",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "core_contracts": 68,
+    "adapter_contracts": 34,
+    "source_count": 5,
+    "enabled_source_count": 4,
+    "success_count": 4,
+    "jackett_disabled_preserved": true,
+    "unique_count": 26,
+    "db_resource_count": 17,
+    "db_movie_genres": 8,
+    "db_directory_count": 66,
+    "db_directory_coverage": "cached_movies",
+    "avdb_snapshot_count": 338,
+    "old_resource_fields_unchanged": true,
+    "public_counts": {
+      "/api/torrents": 26,
+      "/bt/api": 8
+    },
+    "consumer_schema_validated": true,
+    "config_bytes_unchanged": true,
+    "preferences_preserved": true,
+    "credentials_unchanged": true,
+    "history_before": 208,
+    "history_after": 214,
+    "original_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "other_containers_unchanged": true,
+    "downloads": 0,
+    "subscriptions": 0,
+    "final_checked_at_utc": "2026-11-07T14:46:34.626827+00:00",
+    "stage_removed": true,
+    "rollback_retained": true,
+    "final_history_count": 217,
+    "final_health": "healthy"
+  },
+  "backend": {
+    "contractsPassed": 102,
+    "coreContracts": 68,
+    "adapterContracts": 34,
+    "officialImagePlatforms": [
+      "amd64",
+      "arm64"
+    ]
+  },
+  "browser": {
+    "checkedAt": "2026-11-07T14:46:07.081Z",
+    "browser": "Microsoft Edge",
+    "visibleBrowser": true,
+    "publicProduction": true,
+    "physicalPhone": false,
+    "version": "1.8.0",
+    "revision": "12da59c7785d06d7ec034f911cd9b43a1219db4b",
+    "directoryCount": 66,
+    "searches": [
+      {
+        "keyword": "SSIS-586",
+        "sourceCount": 4,
+        "successCount": 4,
+        "uniqueCount": 26,
+        "genreValues": 72
+      },
+      {
+        "keyword": "SNOS-381",
+        "sourceCount": 4,
+        "successCount": 4,
+        "uniqueCount": 8,
+        "genreValues": 15
+      }
+    ],
+    "checks": [
+      "public Edge login and running v1.8.0 revision verified; four enabled sources and disabled Knaben preserved",
+      "live DB Online genre directory expands completely and explains cached-movie coverage and same-film sharing",
+      "catalog click creates source-scoped genres draft, rejects duplicates, and reload discards it without changing production preferences",
+      "source categories, magnet tags and movie genres remain separate in the live UI",
+      "live settings fit at 1440, 768, 390 and 360 pixels",
+      "public Edge SSIS-586 aggregate search succeeds with all four enabled sources",
+      "public Edge SNOS-381 aggregate search succeeds with all four enabled sources",
+      "zero uncaught Edge exceptions; credentials, source settings and default-off preferences preserved"
+    ],
+    "errors": [],
+    "screenshots": [
+      "frontend-verification/screenshots/dbonline-genres-production-1440.png",
+      "frontend-verification/screenshots/dbonline-genres-production-390.png"
+    ],
+    "settingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0
+  },
+  "browserHarnessNote": "The initial post-reload assertion ran before the asynchronous catalog finished loading. Added an explicit catalog-ready wait; the full public Edge run then passed without a product change."
+}
