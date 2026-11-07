@@ -23,6 +23,9 @@ class UpstreamSource(BaseModel):
     jackett_api_key: str = Field(default="", repr=False)
     method: Literal["GET", "POST"] = "GET"
     headers: Dict[str, str] = Field(default_factory=dict)
+    catalog_mode: Literal["auto", "disabled"] = "auto"
+    catalog_headers: Dict[str, str] = Field(default_factory=dict, repr=False)
+    catalog_revision: str = ""
     keyword_field: str = "keyword"
     timeout: float = Field(default=10.0, ge=0.5, allow_inf_nan=False)
     # Changes whenever request configuration changes, including a change back.
@@ -50,7 +53,7 @@ class UpstreamSource(BaseModel):
             raise ValueError("请填写有效的 HTTP / HTTPS 地址")
         return value
 
-    @field_validator("headers")
+    @field_validator("headers", "catalog_headers")
     @classmethod
     def validate_headers(cls, value):
         names = set()
@@ -91,6 +94,10 @@ class AppSettings(BaseModel):
                 if len(labels) != 1:
                     raise ValueError("文字标签无效")
                 rule["value"] = labels[0]
+                if rule["field"] == "category_ids":
+                    from app.resource_metadata import category_ids
+                    if category_ids([rule["value"]]) != [rule["value"]]:
+                        raise ValueError("分类 ID 必须为有效的正整数")
                 identity = ("label", rule["source_id"], rule["field"], normalize_label(rule["value"]))
             if identity in seen:
                 raise ValueError("排序标签无效或重复")
@@ -108,7 +115,8 @@ class AppSettings(BaseModel):
 
 def request_config(source):
     """Keep legacy generic-source fingerprints byte-for-byte compatible."""
-    value = source.model_dump(exclude={"name", "priority", "tags", "source_type", "jackett_indexer", "jackett_api_key"})
+    value = source.model_dump(exclude={"name", "priority", "tags", "source_type", "jackett_indexer", "jackett_api_key",
+                                       "catalog_mode", "catalog_headers", "catalog_revision"})
     if source.source_type == "jackett":
         value.update(source_type="jackett", jackett_indexer=source.jackett_indexer,
                      jackett_api_key=source.jackett_api_key)
@@ -116,8 +124,9 @@ def request_config(source):
 
 
 def public_source(source):
-    value = source.model_dump(exclude={"jackett_api_key"})
+    value = source.model_dump(exclude={"jackett_api_key", "catalog_headers", "catalog_revision"})
     value["has_jackett_api_key"] = bool(source.jackett_api_key)
+    value["has_catalog_headers"] = bool(source.catalog_headers)
     return value
 
 
@@ -179,7 +188,7 @@ def load_settings() -> AppSettings:
                     data["sources"] = clean_sources
                     return AppSettings(**data)
         except Exception as e:
-            print(f"[Config] Error loading {CONFIG_FILE}: {e}")
+            print(f"[Config] Error loading {CONFIG_FILE}: invalid settings ({type(e).__name__})")
 
     # 2. 兼容旧版 sources.json
     if os.path.exists(OLD_SOURCES_FILE):
@@ -197,7 +206,7 @@ def load_settings() -> AppSettings:
                     save_settings(settings)
                     return settings
         except Exception as e:
-            print(f"[Config] Error loading {OLD_SOURCES_FILE}: {e}")
+            print(f"[Config] Error loading {OLD_SOURCES_FILE}: invalid settings ({type(e).__name__})")
 
     # 3. 环境变量初始化
     sources = []

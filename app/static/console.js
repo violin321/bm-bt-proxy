@@ -19,7 +19,8 @@
     securityDirty: false,
     pendingDelete: null,
     headerMode: "json", revealHeaders: false, ruleDraft: [], preferenceDirty: false, preferenceSaving: false, preferenceRevision: 0, provenance: [], resultPreferences: [],
-    labelCatalog: null, catalogEpoch: 0, catalogLoading: false, catalogError: "", expandedLabelSources: new Set(),
+    labelCatalog: null, catalogEpoch: 0, catalogLoading: false, catalogError: "", catalogSyncing: false, catalogPollTimer: null, catalogVisibleCounts: new Map(),
+    revealCatalogHeaders: false,
     composeText: "", endpoint: "",
     authRedirect: false,
   };
@@ -40,6 +41,9 @@
       source.config_revision, source.source_type || "generic", source.jackett_indexer || "all",
       Object.entries(source.headers || {}).sort(([a], [b]) => a.localeCompare(b)),
     ]);
+  }
+  function catalogFingerprint(source) {
+    return JSON.stringify([sourceFingerprint(source), source.catalog_mode || "auto", source.has_catalog_headers || false]);
   }
   function invalidateSourceTest(id) {
     state.tests.delete(id);
@@ -678,10 +682,10 @@
           if (!current || sourceFingerprint(previous) !== sourceFingerprint(current))
             invalidateSourceTest(previous.id);
         }
-        const labelsChanged = JSON.stringify(state.settings.sources.map(s => [s.id, sourceFingerprint(s)])) !== JSON.stringify(data.sources.map(s => [s.id, sourceFingerprint(s)]));
+        const labelsChanged = JSON.stringify(state.settings.sources.map(s => [s.id, catalogFingerprint(s)])) !== JSON.stringify(data.sources.map(s => [s.id, catalogFingerprint(s)]));
         if (preferenceRevision !== state.preferenceRevision) data.result_preferences = copyRules(state.settings.result_preferences || []);
         state.settings = data;
-        if (labelsChanged) {state.labelCatalog = null;state.catalogError = "";}
+        if (labelsChanged) {state.labelCatalog = null;state.catalogError = "";state.catalogVisibleCounts.clear();}
         state.loaded = true;
         if (!state.preferenceDirty && !state.preferenceSaving) state.ruleDraft = copyRules(data.result_preferences || []);
         renderPreferences();
@@ -780,6 +784,31 @@
   $("headersRowsBtn").onclick = () => setHeaderMode("rows");$("headersJsonBtn").onclick = () => setHeaderMode("json");
   $("addHeaderBtn").onclick = () => addHeaderRow();
   $("revealHeadersBtn").onclick = () => {state.revealHeaders = !state.revealHeaders;setHeaderMode(state.headerMode);};
+  function updateCatalogEditor() {
+    $("catalogAuthFields").hidden = $("formCatalogMode").value === "disabled";
+    $("formCatalogHeaders").disabled = $("clearCatalogHeaders").checked;
+    $("formCatalogHeaders").classList.toggle("concealed-value", !state.revealCatalogHeaders);
+    $("revealCatalogHeadersBtn").disabled = $("clearCatalogHeaders").checked;
+    $("revealCatalogHeadersBtn").textContent = state.revealCatalogHeaders ? "隐藏值" : "显示值";
+    $("revealCatalogHeadersBtn").setAttribute("aria-pressed", String(state.revealCatalogHeaders));
+  }
+  $("formCatalogMode").onchange = updateCatalogEditor;
+  $("clearCatalogHeaders").onchange = updateCatalogEditor;
+  $("revealCatalogHeadersBtn").onclick = () => {state.revealCatalogHeaders = !state.revealCatalogHeaders;updateCatalogEditor();};
+  function readCatalogHeaders() {
+    if ($("clearCatalogHeaders").checked) return {};
+    const raw = $("formCatalogHeaders").value.trim();
+    if (!raw) return undefined;
+    let headers;
+    try {headers = JSON.parse(raw);} catch (_) {throw Error("目录认证请求头需为有效的 JSON 对象。");}
+    if (!headers || typeof headers !== "object" || Array.isArray(headers) || Object.values(headers).some(value => typeof value !== "string")) throw Error("目录认证请求头需为字符串值的 JSON 对象。");
+    const names = new Set();
+    for (const [name, value] of Object.entries(headers)) {
+      if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) || names.has(name.toLowerCase()) || /[\r\n\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)) throw Error("目录认证请求头名称无效、重复或值包含控制字符。");
+      names.add(name.toLowerCase());
+    }
+    return headers;
+  }
   const preferenceNames = {free: "免流", chinese: "中文字幕", uc: "UC / 无码", uhd: "UHD / 4K"};
   const preferenceHelp = {
     free: "free · 上游标注的免流资源；公共站点不等于免流。",
@@ -793,8 +822,20 @@
   }
   const copyRules = rules => rules.map(rule => typeof rule === "string" ? rule : {...rule});
   const normalizedLabel = value => value.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+  function labelCaption(label) {
+    return label.field === "category_ids" && label.display_name ? `${label.display_name} · ID ${label.value}` : label.value;
+  }
   function ruleName(rule) {
-    return typeof rule === "string" ? preferenceNames[rule.replace("!", "")] || rule : `“${rule.value}”`;
+    if (typeof rule === "string") return preferenceNames[rule.replace("!", "")] || rule;
+    if (rule.field === "category_ids") {
+      const names = new Set();
+      for (const source of state.labelCatalog?.sources || []) {
+        if (rule.source_id !== "*" && rule.source_id !== source.id) continue;
+        for (const label of source.labels || []) if (label.field === rule.field && label.value === rule.value && label.display_name) names.add(label.display_name);
+      }
+      return names.size === 1 ? `“${[...names][0]} · ID ${rule.value}”` : `“分类 ID ${rule.value}”`;
+    }
+    return `“${rule.value}”`;
   }
   function ruleScope(rule) {
     if (typeof rule === "string") return preferenceHelp[rule.replace("!", "")] || "";
@@ -868,8 +909,8 @@
       for (const label of source.labels || []) {
         if ($("sortLabelField").value !== "*" && label.field !== $("sortLabelField").value) continue;
         const key = normalizedLabel(label.value);
-        if (seen.has(key) || seen.size >= 200) continue;
-        seen.add(key);list.append(new Option(label.value, label.value));
+        if (seen.has(key) || seen.size >= 5000) continue;
+        seen.add(key);list.append(new Option(labelCaption(label), label.value));
       }
     }
   }
@@ -879,6 +920,7 @@
     const values = upstreamLabels({tags: [rule.value]});
     if (!values.length) {message("labelRuleStatus", "请输入有效的文字标签（最多 80 字，不包含链接或凭据）。", true);$("sortLabelValue").focus();return;}
     rule = {...rule, value: values[0].value};
+    if (rule.field === "category_ids" && (!/^[1-9]\d{0,9}$/.test(rule.value) || Number(rule.value) > 2147483647)) {message("labelRuleStatus", "Jackett 分类请填写有效的数字 ID，可从目录点击添加。", true);$("sortLabelValue").focus();return;}
     const duplicate = state.ruleDraft.some(r => typeof r !== "string" && r.source_id === rule.source_id && r.field === rule.field && normalizedLabel(r.value) === normalizedLabel(rule.value));
     if (duplicate) {message("labelRuleStatus", "相同来源、字段和标签已有规则，可直接调整方向或顺序。", true);return;}
     state.ruleDraft.push(rule);
@@ -888,46 +930,90 @@
   }
   async function loadLabelCatalog() {
     if (!state.loaded) return;
+    clearTimeout(state.catalogPollTimer);state.catalogPollTimer = null;
     const epoch = ++state.catalogEpoch, configEpoch = state.loadEpoch;
     state.catalogLoading = true;state.catalogError = "";renderLabelCatalog();
     try {
       const data = await request("/api/resource-labels");
       if (epoch !== state.catalogEpoch || configEpoch !== state.loadEpoch) return;
       if (!data || !Array.isArray(data.sources) || data.sources.some(s => !Array.isArray(s.labels))) throw Error("标签缓存格式无效，请重试。");
-      state.labelCatalog = data;renderLabelSuggestions();
+      const names = catalog => JSON.stringify((catalog?.sources || []).map(source => [source.id, source.labels.filter(label => label.field === "category_ids").map(label => [label.value, label.display_name])]));
+      const captionsChanged = names(state.labelCatalog) !== names(data);
+      state.labelCatalog = data;renderLabelSuggestions();if (captionsChanged) renderPreferences();
+      if (data.refreshing) state.catalogPollTimer = setTimeout(loadLabelCatalog, 1800);
+      return data;
     } catch (error) {
       if (epoch === state.catalogEpoch && configEpoch === state.loadEpoch) state.catalogError = error.message;
     } finally {
       if (epoch === state.catalogEpoch) {state.catalogLoading = false;renderLabelCatalog();}
     }
   }
+  async function syncLabelDirectory() {
+    if (!state.loaded || state.catalogSyncing || state.labelCatalog?.refreshing) return;
+    const configEpoch = state.loadEpoch;
+    state.catalogSyncing = true;state.catalogError = "";++state.catalogEpoch;
+    clearTimeout(state.catalogPollTimer);renderLabelCatalog();
+    try {
+      await post("/api/resource-labels/refresh", {source_id: $("labelCatalogSource").value === "*" ? "all" : $("labelCatalogSource").value});
+      if (configEpoch === state.loadEpoch && state.labelCatalog) state.labelCatalog.refreshing = true;
+      await loadLabelCatalog();
+    } catch (error) {
+      if (configEpoch === state.loadEpoch) state.catalogError = `目录同步未启动：${error.message}`;
+    } finally {state.catalogSyncing = false;renderLabelCatalog();}
+  }
   function labelDate(value) {
     const date = new Date(value);
     return value && !Number.isNaN(date.getTime()) ? date.toLocaleString("zh-CN", {month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"}) : "尚无成功查询";
+  }
+  function directoryState(source) {
+    const directory = source.directory || {provider: "none", status: "never", coverage: "observed_only"};
+    const coverage = {current_database: "当前源数据库中的分类", declared_categories: "站点声明支持的分类", observed_only: "仅搜索中已发现的标签"}[directory.coverage] || "源提供的目录";
+    const statuses = {ready: "目录已同步", unauthorized: "目录需要登录权限", unsupported: "源未提供可读取目录", error: "目录同步失败", never: "目录尚未同步", disabled: "已关闭目录同步"};
+    const status = statuses[directory.status] || "目录状态未知";
+    let detail = coverage;
+    if (directory.fetched_at) detail += ` · 更新于 ${labelDate(directory.fetched_at)}`;
+    if (directory.stale) detail += " · 缓存待更新";
+    if (directory.origin === "snapshot") detail += " · 上次目录快照";
+    if (directory.limited) detail += " · 目录已达容量上限";
+    let hint = "";
+    if (directory.status === "unauthorized") hint = `目录接口需要登录权限。请在源设置中填写“目录认证请求头”后重新同步。${directory.fetched_at ? "已保留上次目录。" : "搜索发现的标签仍可使用。"}`;
+    else if (directory.status === "error") hint = `${directory.error || "暂时无法读取源目录，请稍后重试。"}${directory.fetched_at ? " 已保留上次目录。" : " 搜索发现的标签仍可使用。"}`;
+    else if (directory.status === "unsupported") hint = "该源暂时只累计搜索中返回的标签。";
+    return {directory, status, detail, hint};
   }
   function renderLabelCatalog() {
     const box = $("labelCatalog");box.replaceChildren();
     $("refreshLabelsBtn").disabled = !state.loaded || state.catalogLoading;
     $("refreshLabelsBtn").textContent = state.catalogLoading ? "正在读取…" : "刷新列表";
+    const refreshing = state.catalogSyncing || state.labelCatalog?.refreshing;
+    const selected = state.settings.sources.find(source => source.id === $("labelCatalogSource").value);
+    const unavailable = selected && (!selected.enabled || selected.catalog_mode === "disabled");
+    $("syncLabelDirectoryBtn").disabled = !state.loaded || refreshing || unavailable;
+    $("syncLabelDirectoryBtn").textContent = refreshing ? "正在同步目录…" : unavailable ? selected.enabled ? "目录同步已关闭" : "数据源已停用" : "同步源目录";
+    $("syncLabelDirectoryBtn").setAttribute("aria-busy", String(Boolean(refreshing)));
     const sources = state.labelCatalog?.sources || [], total = sources.reduce((sum, source) => sum + source.labels.length, 0);
-    const stale = state.catalogError ? `读取失败：${state.catalogError}${state.labelCatalog ? " 当前显示上次读取的缓存。" : ""}` : state.labelCatalog?.write_error ? "最近一次标签缓存写入失败，搜索仍可使用；当前显示已保存的标签。" : state.catalogLoading ? "正在读取标签缓存…" : `${sources.length} 个源 · 已发现 ${total} 项标签与字段组合`;
+    const stale = state.catalogError ? `读取失败：${state.catalogError}${state.labelCatalog ? " 当前显示上次读取的缓存。" : ""}` : state.labelCatalog?.write_error ? "最近一次标签缓存写入失败，搜索仍可使用；当前显示已保存的标签。" : refreshing ? "正在逐个同步源目录，期间仍可使用已缓存的标签。" : state.catalogLoading ? "正在读取标签缓存…" : `${sources.length} 个源 · 目录与已发现标签共 ${total} 项`;
     message("labelCatalogStatus", stale, Boolean(state.catalogError || state.labelCatalog?.write_error));
     if (!state.labelCatalog) return;
-    if (!sources.length) {box.append(el("p", "catalog-empty", "添加数据源并完成一次搜索后，标签会自动积累在这里。"));return;}
+    if (!sources.length) {box.append(el("p", "catalog-empty", "添加数据源后可同步目录；搜索返回的标签也会自动补充在这里。"));return;}
     const filter = normalizedLabel($("labelCatalogFilter").value), scope = $("labelCatalogSource").value;
     let visible = 0;
     for (const source of sources) {
       if (scope !== "*" && source.id !== scope) continue;
-      const matching = source.labels.filter(label => !filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(source.name).includes(filter));
+      const matching = source.labels.filter(label => !filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(label.display_name || "").includes(filter) || normalizedLabel(source.name).includes(filter));
       if (filter && !matching.length) continue;
       visible++;
       const row = el("article", "catalog-source");
+      row.dataset.catalogSource = source.id;
       const heading = el("div", "catalog-source-heading");
       const title = el("div");title.append(el("h4", "", source.name), el("span", "small muted", `${source.labels.length} 项${source.enabled ? "" : " · 已停用"} · 最近成功查询 ${labelDate(source.last_query_at)}`));
-      heading.append(title);row.append(heading);
+      const {directory, status, detail, hint} = directoryState(source);
+      const statusTag = el("span", "catalog-directory-state", status);statusTag.dataset.status = directory.status;
+      heading.append(title, statusTag);row.append(heading, el("p", "catalog-coverage", detail));
+      if (hint) row.append(el("p", "catalog-directory-hint" + (["unauthorized", "error"].includes(directory.status) ? " directory-warning" : ""), hint));
       const tags = el("div", "catalog-tags");
-      const expanded = filter || state.expandedLabelSources.has(source.id);
-      for (const label of matching.slice(0, expanded ? 200 : 12)) {
+      const visibleCount = state.catalogVisibleCounts.get(source.id) || 12;
+      for (const label of matching.slice(0, filter ? matching.length : visibleCount)) {
         const tag = button("", () => {
           $("sortLabelValue").value = label.value;$("sortLabelSource").value = source.id;$("sortLabelField").value = label.field;$("sortLabelDirection").value = "prefer";
           addLabelRule({type: "label", value: label.value, field: label.field, source_id: source.id, direction: "prefer"});
@@ -935,19 +1021,24 @@
           $("sortLabelSource").focus({preventScroll: true});
         }, "catalog-tag");
         tag.disabled = state.preferenceSaving;
-        tag.setAttribute("aria-label", `将 ${source.name} 的 ${label.field} 标签 ${label.value} 加入排序`);
-        tag.title = `字段 ${label.field} · 累计命中 ${label.count} 次 · 最近发现 ${labelDate(label.last_seen)}`;
-        tag.append(el("span", "catalog-tag-field", label.field), el("span", "", label.value), el("span", "catalog-tag-count", label.count), el("span", "catalog-tag-add", "+"));tags.append(tag);
+        const origin = {directory: "源目录", observed: "已发现", both: "目录 + 已发现"}[label.origin] || "已发现";
+        tag.dataset.labelOrigin = label.origin || "observed";
+        tag.setAttribute("aria-label", `将 ${source.name} 的 ${label.field} 标签 ${labelCaption(label)} 加入排序`);
+        tag.title = `${origin} · 字段 ${label.field} · 累计搜索命中 ${label.count || 0} 次${label.last_seen ? ` · 最近发现 ${labelDate(label.last_seen)}` : ""}`;
+        tag.append(el("span", "catalog-tag-field", label.field), el("span", "catalog-tag-name", labelCaption(label)), el("span", "catalog-tag-origin", origin));
+        if (label.count) tag.append(el("span", "catalog-tag-count", `${label.count} 次`));
+        if (label.catalog_count !== null && label.catalog_count !== undefined) tag.append(el("span", "catalog-tag-count", `库内 ${label.catalog_count}`));
+        tag.append(el("span", "catalog-tag-add", "+"));tags.append(tag);
       }
       if (tags.childElementCount) row.append(tags);
-      else row.append(el("p", "small muted", source.last_query_at ? "成功查询过，尚未发现文字标签；原始布尔属性可在搜索与测试中查看。" : "尚未积累标签。完成一次搜索后会自动记录，源请求配置变更后重新积累。"));
+      else row.append(el("p", "small muted", source.last_query_at ? "成功查询过，尚未发现文字标签；原始布尔属性可在搜索与测试中查看。" : "暂无可用标签。可先同步源目录，或完成一次搜索积累标签。"));
       if (!filter && matching.length > 12) {
-        const more = button(expanded ? "收起标签" : `展开其余 ${matching.length - 12} 项`, () => {
-          if (expanded) state.expandedLabelSources.delete(source.id);else state.expandedLabelSources.add(source.id);
+        const more = button(visibleCount >= matching.length ? "收起标签" : `再显示 ${Math.min(100, matching.length - visibleCount)} 项（剩余 ${matching.length - visibleCount}）`, () => {
+          if (visibleCount >= matching.length) state.catalogVisibleCounts.delete(source.id);else state.catalogVisibleCounts.set(source.id, visibleCount + 100);
           renderLabelCatalog();
           [...box.querySelectorAll("button")].find(n => n.dataset.expandSource === source.id)?.focus();
         }, "btn subtle catalog-expand");
-        more.dataset.expandSource = source.id;more.setAttribute("aria-expanded", String(Boolean(expanded)));row.append(more);
+        more.dataset.expandSource = source.id;more.setAttribute("aria-expanded", String(visibleCount > 12));row.append(more);
       }
       if (source.labels_limited) row.append(el("p", "hint", "标签缓存已达到容量上限，部分较早的标签可能已被替换。"));
       box.append(row);
@@ -955,6 +1046,8 @@
     if (!visible) box.append(el("p", "catalog-empty", "没有匹配的已发现标签，试试其他来源或关键词。"));
   }
   $("refreshLabelsBtn").onclick = loadLabelCatalog;
+  $("syncLabelDirectoryBtn").onclick = syncLabelDirectory;
+  window.addEventListener("pagehide", () => clearTimeout(state.catalogPollTimer));
   $("labelCatalogSource").onchange = renderLabelCatalog;
   $("labelCatalogFilter").oninput = renderLabelCatalog;
   $("sortLabelSource").onchange = renderLabelSuggestions;
@@ -1012,6 +1105,12 @@
     $("formJackettIndexer").value = s?.jackett_indexer || "all";
     $("indexerStatus").textContent = "";
     state.headerMode = "json"; state.revealHeaders = false;
+    state.revealCatalogHeaders = false;
+    $("formCatalogMode").value = s?.catalog_mode || "auto";
+    $("formCatalogHeaders").value = "";
+    $("clearCatalogHeaders").checked = false;
+    $("catalogHeadersHint").textContent = s?.has_catalog_headers ? "已保存目录认证；留空保留原值，填写则替换。已保存内容不会回显。" : "仅在目录需要登录时填写 JSON 对象；与搜索请求头分开保存，不回显已保存值。";
+    updateCatalogEditor();
     updateSourceType(false);
     $("formEnabled").checked = s ? s.enabled : true;
     $("formHeaders").value =
@@ -1083,9 +1182,11 @@
       $("formUrl").focus();
       return;
     }
-    let headers;
+    let headers, catalogHeaders;
     try {headers = state.headerMode === "rows" ? readHeaderRows() : parseHeaderText();}
     catch (error) {message("sourceError", error.message, true);$("formHeaders").focus();return;}
+    try {catalogHeaders = readCatalogHeaders();}
+    catch (error) {message("sourceError", error.message, true);$("formCatalogHeaders").focus();return;}
     const timeout =
       $("formTimeout").value.trim() === ""
         ? 10
@@ -1115,7 +1216,9 @@
       timeout,
       enabled: $("formEnabled").checked,
       headers,
+      catalog_mode: $("formCatalogMode").value,
     };
+    if (catalogHeaders !== undefined) data.catalog_headers = catalogHeaders;
     if ($("clearJackettKey").checked) data.jackett_api_key = "";
     else if ($("formJackettKey").value.trim()) data.jackett_api_key = $("formJackettKey").value.trim();
     const previous = state.settings.sources.find(s => s.id === id);
@@ -1283,7 +1386,7 @@
     );
     return (n / 1024 ** i).toFixed(1) + " " + ["B", "KB", "MB", "GB", "TB"][i];
   }
-  const upstreamLabelFields = {tags: "标签", labels: "标签", category: "分类", categories: "分类", genres: "风格"};
+  const upstreamLabelFields = {tags: "标签", labels: "标签", category: "分类", categories: "分类", genres: "风格", category_ids: "分类 ID"};
   function upstreamLabels(item) {
     const labels = [];
     for (const field of Object.keys(upstreamLabelFields)) {
@@ -1292,6 +1395,7 @@
       const seen = new Set();
       for (let entry of values) {
         if (entry && typeof entry === "object" && !Array.isArray(entry)) entry = entry.name || entry.label;
+        if (field === "category_ids" && Number.isSafeInteger(entry) && entry >= 0) entry = String(entry);
         if (typeof entry !== "string") continue;
         if (/[\x00-\x1f\x7f]/.test(entry)) continue;
         const text = entry.replace(/\s+/g, " ").trim();

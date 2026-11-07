@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-11-07T07:01:20.947Z",
+  "browser": "Microsoft Edge",
+  "checks": [
+    "directory coverage, provenance, 401 retained snapshot and cache-only refresh are explicit",
+    "all 1000 directory entries can be paged and searched; friendly category captions save exact numeric IDs",
+    "manual ID rules reject names and directory synchronization polls to completion for one or all sources",
+    "catalog authentication stays write-only, blank edits preserve it, validation and explicit clear/disable work",
+    "catalog read failures preserve the last snapshot; disabled directory state is distinct",
+    "numeric upstream category arrays and friendly ID rule explanations display without changing IDs",
+    "directory and authentication UI fit 1440/768/390/360px with zero uncaught Edge exceptions"
+  ],
+  "errors": [],
+  "isolated": true,
+  "controlledDirectoryResponses": true,
+  "physicalPhone": false
+}

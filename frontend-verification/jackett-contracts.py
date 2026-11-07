@@ -130,7 +130,10 @@ class MergeContracts(unittest.TestCase):
 
     def test_legacy_fingerprint_and_metadata_edits(self):
         a = UpstreamSource(id='old', url='http://old.test')
-        legacy = a.model_dump(exclude={'name', 'source_type', 'priority', 'tags', 'jackett_indexer', 'jackett_api_key'})
+        # Freeze the pre-directory request fields, rather than accidentally
+        # incorporating newly added metadata defaults into the legacy digest.
+        legacy = a.model_dump(include={'id', 'enabled', 'url', 'method', 'headers',
+                                       'keyword_field', 'timeout', 'config_revision'})
         expected = hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
         self.assertEqual(source_key(a), expected)
         a.tags = ['public']; a.priority = 2; a.name = 'renamed'
