@@ -141,10 +141,180 @@
     "physicalPhone": false,
     "sourceSettingsChanged": false
   },
-  "production_verified": false,
+  "production_verified": true,
   "limitations": [
     "92-indexer all query timed out at 20 seconds; no full all-query success claimed",
     "Knaben returned 2 records but did not increase the 26 unique aggregate records in this sample",
     "No downloads, subscriptions, physical-phone or long-term stability validation"
-  ]
+  ],
+  "official_image": {
+    "checked_at_utc": "2026-11-07T02:49:37.790688+00:00",
+    "image": "violin321/bm-bt-proxy@sha256:716b744734c1c0969232af1e0b0239077149ce90685529982f3deba31bc8fc15",
+    "image_id": "sha256:29a080c7fbac772dc2015b3c9c51f9801eda07efab7273690d6ac224a23a0b39",
+    "revision": "c6fb0dcb05fae36eb33b3b9b05771397e61186c6",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "contracts": 17,
+    "stage_source_count": 5,
+    "stage_success_count": 5,
+    "stage_unique_count": 26,
+    "stage_time_ms": 5453,
+    "stage_knaben_count": 2,
+    "history_preserved": true,
+    "sqlite": "ok",
+    "stage_scope": "knaben"
+  },
+  "production": {
+    "checked_at_utc": "2026-11-07T02:50:30.317833+00:00",
+    "version": "1.5.0",
+    "revision": "c6fb0dcb05fae36eb33b3b9b05771397e61186c6",
+    "image": "violin321/bm-bt-proxy@sha256:716b744734c1c0969232af1e0b0239077149ce90685529982f3deba31bc8fc15",
+    "image_id": "sha256:29a080c7fbac772dc2015b3c9c51f9801eda07efab7273690d6ac224a23a0b39",
+    "source_id": "64a7b6f0",
+    "scope": "knaben",
+    "enabled": true,
+    "priority": 200,
+    "resource_preferences": [],
+    "unique_count": 26,
+    "total_time_ms": 7957,
+    "sources": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "success": true,
+        "outcome": "complete",
+        "count": 8,
+        "latency_ms": 1446
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "success": true,
+        "outcome": "complete",
+        "count": 6,
+        "latency_ms": 7910
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "success": true,
+        "outcome": "complete",
+        "count": 17,
+        "latency_ms": 34
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "success": true,
+        "outcome": "complete",
+        "count": 15,
+        "latency_ms": 472
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "success": true,
+        "outcome": "complete",
+        "count": 2,
+        "latency_ms": 14
+      }
+    ],
+    "public_aliases": [
+      {
+        "path": "/api/torrents",
+        "method": "GET",
+        "count": 26
+      },
+      {
+        "path": "/bt/api",
+        "method": "POST",
+        "count": 26
+      }
+    ],
+    "original_source_settings_preserved": true,
+    "api_credentials_preserved": true,
+    "old_cookie_valid": true,
+    "history_before": 90,
+    "history_after": 93,
+    "history_preserved": true,
+    "sqlite": "ok",
+    "management_auth": true,
+    "unrelated_containers_unchanged": true,
+    "downloads": 0,
+    "subscriptions": 0
+  },
+  "production_consumer": {
+    "checked_at_utc": "2026-11-07T02:51:09.390938+00:00",
+    "isolated_real_consumer": "byte-muse-bt-test",
+    "cases": [
+      {
+        "query": "SSIS-586",
+        "success": true,
+        "count": 26,
+        "signature": "0c0aab435fa4e187",
+        "elapsed_ms": 3898,
+        "aggregate_requests": [
+          {
+            "id": 94,
+            "keyword": "SSIS-586",
+            "outcome": "complete",
+            "unique_count": 26,
+            "target_count": 5,
+            "success_count": 5
+          }
+        ]
+      },
+      {
+        "query": "ssis586",
+        "success": true,
+        "count": 26,
+        "signature": "0c0aab435fa4e187",
+        "elapsed_ms": 7148,
+        "aggregate_requests": [
+          {
+            "id": 95,
+            "keyword": "SSIS-586",
+            "outcome": "complete",
+            "unique_count": 26,
+            "target_count": 5,
+            "success_count": 5
+          }
+        ]
+      }
+    ],
+    "model": {
+      "validated_count": 26,
+      "real_consumer_model": true
+    },
+    "queries_serial": true,
+    "downloads": 0,
+    "subscriptions": 0,
+    "byte_muse_settings_changed": false
+  },
+  "production_browser": {
+    "checks": [
+      "real authenticated overview includes Jackett",
+      "real 1440px source editor, hidden key, preserved default-off preference",
+      "real 390px source editor, hidden key, preserved default-off preference"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false,
+    "sourceSettingsChanged": false
+  },
+  "final": {
+    "checked_at_utc": "2026-11-07T02:53:13.388972+00:00",
+    "running": true,
+    "restart_count": 0,
+    "oom_killed": false,
+    "current_history_count": 96,
+    "original_history_retained": 90,
+    "durable_latest_success_sources": 5,
+    "old_cookie_valid": true,
+    "unrelated_containers_unchanged": true,
+    "stage_removed": true,
+    "stage_data_and_rollback_retained": true
+  }
 }
