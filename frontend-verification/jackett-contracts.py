@@ -89,6 +89,11 @@ class JackettContracts(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r['count'], 1); self.assertEqual(r['skipped_count'], 1)
         self.assertNotIn('private', str(r['items']))
 
+    async def test_magnet_in_link_field_is_usable(self):
+        r = await self.fetch(payload(rows=[{'Title': 'link magnet', 'Link': MAGNET}]))
+        self.assertTrue(r['success']); self.assertEqual(r['count'], 1)
+        self.assertEqual(r['items'][0]['download_url'], MAGNET)
+
     async def test_generic_wrong_schema_and_post_headers(self):
         def handler(request):
             self.assertEqual(request.method, 'POST')
@@ -155,6 +160,7 @@ class ManagementContracts(unittest.TestCase):
         import app.config as config
         config.DATA_DIR = cls.tmp.name; config.CONFIG_FILE = str(Path(cls.tmp.name)/'config.json')
         cls.main.settings = AppSettings()
+        cls.main.request_stats = RequestStats(Path(cls.tmp.name) / 'requests.sqlite3')
         cls.client = TestClient(main.app)
 
     @classmethod

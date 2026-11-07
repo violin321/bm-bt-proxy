@@ -1,0 +1,150 @@
+{
+  "local_checks": {
+    "jackett_contracts": 17,
+    "statistics_contracts": 8,
+    "db_online_contracts": 20,
+    "backend_groups": 9,
+    "original_browser_groups": 26,
+    "dashboard_browser_groups": 9,
+    "new_browser_groups": 7
+  },
+  "stage": {
+    "checked_at_utc": "2026-11-07T02:37:00.356464+00:00",
+    "version": "1.5.0",
+    "indexer_count": 92,
+    "all": {
+      "unique_count": 0,
+      "total_time_ms": 20001,
+      "sources": [
+        {
+          "id": "ae30ce16",
+          "name": "Jackett",
+          "success": false,
+          "outcome": "failed",
+          "status_code": null,
+          "latency_ms": 20000,
+          "count": 0,
+          "error": "上游请求超时",
+          "skipped_count": 0,
+          "indexer_count": 0,
+          "indexer_success": 0
+        }
+      ]
+    },
+    "single_knaben": {
+      "unique_count": 2,
+      "total_time_ms": 14,
+      "sources": [
+        {
+          "id": "ae30ce16",
+          "name": "Jackett",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 13,
+          "count": 2,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 1,
+          "indexer_success": 1
+        }
+      ]
+    },
+    "aggregate_knaben": {
+      "unique_count": 26,
+      "total_time_ms": 4913,
+      "sources": [
+        {
+          "id": "02a6e3b9",
+          "name": "本机 AVDB (色花堂/LTX)",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 1503,
+          "count": 8,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 0,
+          "indexer_success": 0
+        },
+        {
+          "id": "529782a6",
+          "name": "修仙",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 4910,
+          "count": 6,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 0,
+          "indexer_success": 0
+        },
+        {
+          "id": "a4d1d9ff",
+          "name": "DB Online (JavDB)",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 84,
+          "count": 17,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 0,
+          "indexer_success": 0
+        },
+        {
+          "id": "cfac511a",
+          "name": "DB Online (Nyaa)",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 522,
+          "count": 15,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 0,
+          "indexer_success": 0
+        },
+        {
+          "id": "ae30ce16",
+          "name": "Jackett",
+          "success": true,
+          "outcome": "complete",
+          "status_code": 200,
+          "latency_ms": 11,
+          "count": 2,
+          "error": null,
+          "skipped_count": 0,
+          "indexer_count": 1,
+          "indexer_success": 1
+        }
+      ]
+    },
+    "production_unchanged": true,
+    "default_preferences": [],
+    "credentials_included": false,
+    "restart_persistence": true,
+    "old_cookie_valid": true,
+    "history_retained": true,
+    "sqlite": "ok",
+    "management_auth": true
+  },
+  "stage_browser": {
+    "checks": [
+      "real authenticated overview includes Jackett",
+      "real 1440px source editor, hidden key, preserved default-off preference",
+      "real 390px source editor, hidden key, preserved default-off preference"
+    ],
+    "errors": [],
+    "realRemote": true,
+    "physicalPhone": false,
+    "sourceSettingsChanged": false
+  },
+  "production_verified": false,
+  "limitations": [
+    "92-indexer all query timed out at 20 seconds; no full all-query success claimed",
+    "Knaben returned 2 records but did not increase the 26 unique aggregate records in this sample",
+    "No downloads, subscriptions, physical-phone or long-term stability validation"
+  ]
+}

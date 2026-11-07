@@ -31,6 +31,8 @@ def jackett_items(rows):
             skipped += 1
             continue
         link = row.get("MagnetUri") or ""
+        if not link and isinstance(row.get("Link"), str) and row["Link"].startswith("magnet:?"):
+            link = row["Link"]
         if not isinstance(link, str) or not link.startswith("magnet:?") or not dedup_key({"magnet": link}).startswith("btih:"):
             infohash = canonical_btih(str(row.get("InfoHash") or ""))
             if not infohash:
