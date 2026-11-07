@@ -364,7 +364,7 @@ def extract_dedup_key(item: Dict[str, Any]) -> str:
 fetch_single_source = fetch_source
 
 
-async def run_search(targets, keyword):
+async def run_search(targets, keyword, profile="standard"):
     start = time.monotonic()
     # Snapshot settings so edits during a request cannot mix two configurations.
     targets = [s.model_copy(deep=True) for s in targets]
@@ -372,7 +372,7 @@ async def run_search(targets, keyword):
     async with httpx.AsyncClient(verify=False) as client:
         results = await asyncio.gather(*(fetch_single_source(client, source, keyword) for source in targets))
     await asyncio.to_thread(label_catalog.record, targets, results, lambda: list(settings.sources))
-    merged = merge_results(targets, results, preferences)
+    merged = merge_results(targets, results, preferences, profile)
     elapsed = int((time.monotonic() - start) * 1000)
     return targets, results, merged, elapsed
 
@@ -381,6 +381,9 @@ async def run_search(targets, keyword):
 async def test_search(body: Dict[str, Any] = Body(...)):
     keyword = body.get("keyword", "")
     target_id = body.get("source_id", "all")
+    profile = body.get("profile", "standard")
+    if not isinstance(profile, str) or profile not in {"standard", "ltx"}:
+        raise HTTPException(422, "请选择标准聚合或 LTX 优选方案")
 
     targets = (
         [s for s in settings.sources if s.enabled]
@@ -390,7 +393,7 @@ async def test_search(body: Dict[str, Any] = Body(...)):
     if not targets:
         return {"data": [], "details": [], "total_time_ms": 0}
 
-    targets, results, merged, elapsed = await run_search(targets, str(keyword))
+    targets, results, merged, elapsed = await run_search(targets, str(keyword), profile)
     details = [{**{k: v for k, v in result.items() if k != "items"},
                 "resource_metadata": summarize_resources(result["items"])} for result in results]
     await asyncio.to_thread(request_stats.record, "test", str(keyword), targets, results, len(merged["data"]), elapsed)
@@ -400,11 +403,21 @@ async def test_search(body: Dict[str, Any] = Body(...)):
 @app.api_route("/api/torrents", methods=["GET", "POST"], dependencies=[Depends(verify_api_key)])
 @app.api_route("/bt/api", methods=["GET", "POST"], dependencies=[Depends(verify_api_key)])
 async def aggregate_torrents(keyword: Optional[str] = Query(default="")):
+    return await aggregate_response(keyword)
+
+
+@app.api_route("/api/torrents/ltx", methods=["GET", "POST"], dependencies=[Depends(verify_api_key)])
+@app.api_route("/bt/api/ltx", methods=["GET", "POST"], dependencies=[Depends(verify_api_key)])
+async def ltx_torrents(keyword: Optional[str] = Query(default="")):
+    return await aggregate_response(keyword, profile="ltx")
+
+
+async def aggregate_response(keyword, profile="standard"):
     enabled_sources = [s for s in settings.sources if s.enabled]
     if not enabled_sources:
         return {"data": []}
 
     search_kw = keyword or ""
-    targets, results, merged, elapsed = await run_search(enabled_sources, search_kw)
+    targets, results, merged, elapsed = await run_search(enabled_sources, search_kw, profile)
     await asyncio.to_thread(request_stats.record, "api", search_kw, targets, results, len(merged["data"]), elapsed)
     return {"data": merged["data"]}

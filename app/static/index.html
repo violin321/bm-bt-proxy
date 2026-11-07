@@ -171,6 +171,10 @@
                   ><span>搜索并测试</span>
                 </button>
               </div>
+              <div class="search-profile">
+                <label class="field" for="testProfile">返回方案<select id="testProfile"><option value="standard">标准聚合</option><option value="ltx">LTX 优选 · 仅无码</option></select></label>
+                <p id="testProfileHint" class="hint" hidden>LTX 标记来自单条磁链的标签或标题。保留其他无码候选，方便 Byte-Muse 按大小、UHD 等条件过滤后兜底；接入时需将其排序设为 uc。</p>
+              </div>
               <p id="searchStatus" class="search-status" role="status">
                 测试会实际请求上游；启用状态不代表源站可用。
               </p>
@@ -261,11 +265,13 @@
                   <label class="field" for="consumerNetwork">Byte-Muse 如何访问 BM-BT<select id="consumerNetwork"><option value="browser">使用当前访问地址</option><option value="docker">Docker 同网络</option><option value="custom">自定义地址</option></select></label>
                   <label class="field" for="consumerBaseUrl">BM-BT 服务地址<input id="consumerBaseUrl" aria-label="BM-BT 服务地址" type="url" spellcheck="false" autocomplete="off" placeholder="http://服务器地址:8008" /><span id="consumerAddressHint" class="hint">请确认这个地址能从 Byte-Muse 容器内访问。</span></label>
                 </div>
+                <label class="field" for="consumerProfile">接入方案<select id="consumerProfile"><option value="standard">标准聚合 · 保留现有设置</option><option value="ltx">LTX 优选 · 仅无码</option></select></label>
+                <p id="consumerProfileHint" class="hint">标准聚合沿用已保存的源优先级与返回顺序。</p>
                 <div id="consumerError" class="notice error" role="alert" hidden></div>
                 <div class="compose-heading"><span class="small">粘贴到 <code>services → byte-muse → environment</code></span><button id="copyCompose" type="button" class="btn">复制 Compose 配置</button></div>
                 <pre id="consumerCompose" class="compose-code" tabindex="0" aria-label="Byte-Muse Compose 环境变量">正在读取配置…</pre>
                 <p id="composeKeyHint" class="hint">配置使用已保存的接口保护设置。</p>
-                <details class="manual-connection"><summary>在 Byte-Muse 页面手动填写</summary><dl><div><dt>BT_URL</dt><dd id="consumerUrl"></dd></div><div><dt>BT_METHOD</dt><dd><code>get</code></dd></div><div><dt>BT_HEADER</dt><dd><code id="consumerHeaders"></code><button id="copyConsumerHeaders" type="button" class="text-link">复制 BT_HEADER</button></dd></div><div><dt>BT_JSON_DATA</dt><dd>留空</dd></div></dl></details>
+                <details class="manual-connection"><summary>在 Byte-Muse 页面手动填写</summary><dl><div><dt>BT_URL</dt><dd id="consumerUrl"></dd></div><div><dt>BT_METHOD</dt><dd><code>get</code></dd></div><div><dt>BT_HEADER</dt><dd><code id="consumerHeaders"></code><button id="copyConsumerHeaders" type="button" class="text-link">复制 BT_HEADER</button></dd></div><div><dt>BT_JSON_DATA</dt><dd>留空</dd></div><div id="consumerSortRow" hidden><dt>DEFAULT_SORT / 默认排序</dt><dd><code>uc</code>；保持“仅无码”和其他筛选条件。</dd></div></dl></details>
                 <details class="manual-connection"><summary>复制兼容令牌参数的接入地址</summary>
                 <div class="endpoint">
                   <code id="apiUrlCode">正在读取接入地址…</code
