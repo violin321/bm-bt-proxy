@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-11-07T16:36:06.517Z",
+  "browser": "Microsoft Edge",
+  "isolated": true,
+  "realBm": true,
+  "syntheticResources": true,
+  "checks": [
+    "profile-specific URL and Compose sort with path-prefix support, masked key and reversible standard selection",
+    "connection UI fits 1440/768/390/360px",
+    "real local search switches standard to LTX UC profile, retains fallback and shows per-resource evidence",
+    "search UI fits four widths without overflow",
+    "zero page errors and no settings writes"
+  ],
+  "errors": [],
+  "settingsChanged": false,
+  "downloads": 0,
+  "subscriptions": 0,
+  "physicalPhone": false
+}

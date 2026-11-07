@@ -439,17 +439,22 @@
       const base = new URL($("consumerBaseUrl").value.trim());
       if (!["http:", "https:"].includes(base.protocol) || base.username || base.password || base.search || base.hash)
         throw Error("请填写 HTTP / HTTPS 服务地址，不含账号、查询参数或片段。");
-      const path = base.pathname.replace(/\/+$/, "");
-      base.pathname = path.endsWith("/api/torrents") ? path : path + "/api/torrents";
+      const path = base.pathname.replace(/\/+$/, "").replace(/\/api\/torrents(?:\/ltx)?$/, "");
+      const ltx = $("consumerProfile").value === "ltx";
+      base.pathname = path + (ltx ? "/api/torrents/ltx" : "/api/torrents");
       const enabled = Boolean(state.settings.api_key_enabled && state.settings.api_key);
       const headers = enabled ? {"X-API-Key": state.settings.api_key} : {};
       const publicHeaders = enabled ? {"X-API-Key": "••••••••"} : {};
       const yamlString = value => JSON.stringify(value.replace(/\$/g, "$$$$"));
-      const compose = value => ["BT_URL: " + yamlString(base.href), 'BT_METHOD: "get"', "BT_HEADER: " + yamlString(JSON.stringify(value)), 'BT_JSON_DATA: ""'].join("\n");
+      const compose = value => ["BT_URL: " + yamlString(base.href), 'BT_METHOD: "get"', "BT_HEADER: " + yamlString(JSON.stringify(value)), 'BT_JSON_DATA: ""', ...(ltx ? ['DEFAULT_SORT: "uc"'] : [])].join("\n");
       state.composeText = compose(headers);state.consumerHeaders = JSON.stringify(headers);
       $("consumerCompose").textContent = compose(publicHeaders);
       $("consumerUrl").textContent = base.href;
       $("consumerHeaders").textContent = JSON.stringify(publicHeaders);
+      $("consumerSortRow").hidden = !ltx;
+      $("consumerProfileHint").textContent = ltx
+        ? "LTX 无码优先，保留其他无码候选。Byte-Muse 继续使用你原有的仅无码、大小和 UHD 等筛选；将实际生效的默认排序 DEFAULT_SORT 设为 uc，避免再次按免流、中字或做种数覆盖 LTX 顺序。此选择只生成接入配置，不会修改运行中的 Byte-Muse。"
+        : "标准聚合沿用已保存的源优先级与返回顺序。";
       $("composeKeyHint").textContent = enabled
         ? "密钥已隐藏；复制 Compose 配置会包含已保存的 API Key。"
         : "接口保护未开启，BT_HEADER 使用空对象。";
@@ -484,6 +489,7 @@
     if (state.loaded) updateEndpoint();
   };
   $("consumerBaseUrl").oninput = () => {$("consumerNetwork").value = "custom";$("consumerAddressHint").textContent = "请填写 Byte-Muse 容器可访问的地址；远程容器的 localhost 指向它自身。";if (state.loaded) updateEndpoint();};
+  $("consumerProfile").onchange = () => state.loaded && updateEndpoint();
   $("copyCompose").onclick = () => state.loaded && state.composeText
     ? copy(state.composeText) : toast("请先读取配置并填写有效服务地址");
   $("copyConsumerHeaders").onclick = () => state.loaded && state.composeText
@@ -1499,6 +1505,11 @@
       tags.append(el("span", "tag", item.site || item.website || "来源未标注"));
       const origin = state.provenance[itemIndex];
       if (origin) tags.append(el("span", "priority-tag", `${origin.source_name} · 优先级 ${origin.priority}`));
+      if (origin?.ltx_evidence) {
+        const tag = el("span", "tag positive", origin.ltx_evidence === "title" ? "LTX · 标题标记" : "LTX · 磁链标签");
+        tag.title = "上游对这条资源的明确 LTX 标记；没有验证实际使用的破解模型。";
+        tags.append(tag);
+      }
       for (const [key, name] of Object.entries(preferenceNames))
         if (resourceFlag(item, key)) {
           const caption = key === "uhd" && item.uhd !== true ? "高清 · HD" : name;
@@ -1601,7 +1612,11 @@
     let mergeNote = $("mergeExplanation");
     if (!mergeNote) {mergeNote = el("details", "merge-explanation");mergeNote.id = "mergeExplanation";$("metrics").after(mergeNote);}
     mergeNote.replaceChildren(el("summary", "", `排序与去重说明 · ${(data.merge?.duplicates || []).length} 条重复记录`));
-    mergeNote.append(el("p", "small muted", (data.merge?.preferences || []).length ? `先按源优先级去重，再依次比较：${data.merge.preferences.map(ruleDescription).join(" → ")}，最后按源优先级及原顺序排列。` : "排序偏好关闭；按源优先级去重和排序，同级保留原顺序。"));
+    if (data.selection?.profile === "ltx") {
+      mergeNote.append(el("p", "small muted", `LTX 优选 · ${data.selection.ltx_count} 条 LTX 标记 / ${data.selection.uncensored_count} 条无码候选。重复磁链优先保留有 LTX 标记的无码记录，再比较源优先级；保留完整原始记录，不借用其他资源的标签。`));
+      mergeNote.append(el("p", "hint", "其他无码候选仍保留。Byte-Muse 继续按你的条件过滤，排序需设为 uc，才能保持 LTX 优先。影片风格、源名称和普通“破解”字样不用于判定 LTX。"));
+    }
+    mergeNote.append(el("p", "small muted", (data.merge?.preferences || []).length ? `${data.selection?.profile === "ltx" ? "同档内" : "先按源优先级去重，再"}依次比较：${data.merge.preferences.map(ruleDescription).join(" → ")}，最后按源优先级及原顺序排列。` : data.selection?.profile === "ltx" ? "同档内按源优先级及原顺序排列。" : "排序偏好关闭；按源优先级去重和排序，同级保留原顺序。"));
     mergeNote.append(el("p", "hint", "文字标签只匹配每条最终保留资源的实际标签；缓存用于选择规则，不会给资源补标签。"));
     (data.merge?.duplicates || []).slice(0, 20).forEach(d => mergeNote.append(el("p", "small", `保留 ${d.kept_source}，合并 ${d.discarded_source}：${d.reason}`)));
     $("testDiagnostics").hidden = false;
@@ -1634,8 +1649,9 @@
     }
     $("resultCount").textContent = state.results.length;
     $("resultSummary").textContent =
-      `${state.details.length} 个源 · ${data.total_time_ms ?? "—"} ms · 已聚合去重`;
+      `${state.details.length} 个源 · ${data.total_time_ms ?? "—"} ms · 已聚合去重${data.selection?.profile === "ltx" ? ` · LTX ${data.selection.ltx_count} 条 / 无码 ${data.selection.uncensored_count} 条` : ""}`;
   }
+  $("testProfile").onchange = () => {$("testProfileHint").hidden = $("testProfile").value !== "ltx";};
   $("searchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!state.loaded) {
@@ -1644,6 +1660,7 @@
     }
     const keyword = $("testKeyword").value.trim(),
       target = $("testTargetSource").value;
+    const profile = $("testProfile").value;
     if (!keyword) {
       $("testKeyword").focus();
       return;
@@ -1676,7 +1693,7 @@
         try {
           const data = await post(
             "/api/test",
-            { keyword, source_id: target },
+            { keyword, source_id: target, ...(profile === "ltx" ? {profile} : {}) },
             "POST",
             Math.max(15000, timeout),
           );

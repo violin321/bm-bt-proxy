@@ -2,6 +2,6 @@
 import os
 import re
 
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 _revision = os.getenv("BM_BUILD_REVISION", "")
 REVISION = _revision if re.fullmatch(r"[a-fA-F0-9]{7,40}", _revision) else ""

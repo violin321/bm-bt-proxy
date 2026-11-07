@@ -2,6 +2,7 @@
 import base64
 import re
 from app.resource_metadata import item_labels, normalize_label
+from app.ltx import ltx_evidence
 
 
 def canonical_btih(value):
@@ -26,13 +27,23 @@ def dedup_key(item):
     return "title:" + str(title).strip().lower() if title else ""
 
 
-def merge_results(sources, results, preferences):
+def merge_results(sources, results, preferences, profile="standard"):
+    if profile not in {"standard", "ltx"}:
+        raise ValueError("Unknown result profile")
     candidates = []
     for index, (source, result) in enumerate(zip(sources, results)):
         for position, item in enumerate(result["items"] if result["success"] else []):
             if isinstance(item, dict):
+                # Match the consumer's strict UC flag. A model name alone is not UC evidence.
+                if profile == "ltx" and item.get("uc") is not True:
+                    continue
                 candidates.append((source.priority, index, position, source, item))
-    candidates.sort(key=lambda row: row[:3])
+    evidence = {id(row[4]): ltx_evidence(row[4]) for row in candidates} if profile == "ltx" else {}
+    def model_rank(row):
+        return (-int(bool(evidence.get(id(row[4])))),) if profile == "ltx" else ()
+    # In the opt-in profile retain the complete explicitly marked record for a duplicate.
+    # The standard profile continues to choose its original source-priority winner.
+    candidates.sort(key=lambda row: (*model_rank(row), *row[:3]))
     seen, selected, duplicates = {}, [], []
     for row in candidates:
         source, item = row[3:]
@@ -40,7 +51,8 @@ def merge_results(sources, results, preferences):
         if key and key in seen:
             if len(duplicates) < 200:
                 duplicates.append({"kept_source": seen[key], "discarded_source": source.name,
-                                   "reason": "源优先级；同级按配置顺序"})
+                                   "reason": "LTX 优选；同档按源优先级及配置顺序" if profile == "ltx"
+                                   else "源优先级；同级按配置顺序"})
             continue
         if key:
             seen[key] = source.name
@@ -71,9 +83,16 @@ def merge_results(sources, results, preferences):
         for rule, flag in zip(preferences, matches(row)):
             defer = rule.startswith("!") if isinstance(rule, str) else rule["direction"] == "defer"
             values.append(int(flag) if defer else -int(flag))
-        return (*values, *row[:3])
+        return (*model_rank(row), *values, *row[:3])
     selected.sort(key=rank)
-    return {"data": [r[4] for r in selected],
+    value = {"data": [r[4] for r in selected],
             "provenance": [{"source_id": r[3].id, "source_name": r[3].name, "priority": r[0],
-                            "rule_matches": matches(r)} for r in selected],
+                            "rule_matches": matches(r),
+                            **({"ltx_evidence": evidence.get(id(r[4]))} if profile == "ltx" else {})}
+                           for r in selected],
             "merge": {"preferences": preferences, "duplicates": duplicates}}
+    if profile == "ltx":
+        value["selection"] = {"profile": "ltx", "ltx_count": sum(bool(evidence.get(id(r[4]))) for r in selected),
+                              "uncensored_count": len(selected), "fallback_preserved": True,
+                              "consumer_sort": "uc"}
+    return value
