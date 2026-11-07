@@ -34,4 +34,33 @@ AVDB 的原始字段已被聚合保留，但卡片没有展示。DB Online 适�
 
 前端按已选“素白运行台”延续。Impeccable 对 console.js / dashboard.css 的本轮扫描无新发现；桌面和手机截图一轮合并检查无溢出。继承的设计工作流仍保留早期 comps 标记，属于已告知的历史状态，本次没有重开风格选择或改写设计元数据。
 
-证据：`frontend-verification/resource-metadata-contracts.py`、`verify-resource-tags.cjs`、`resource-tags-results.json`。生产部署验收另行追加。
+证据：`frontend-verification/resource-metadata-contracts.py`、`verify-resource-tags.cjs`、`resource-tags-results.json`；正式验收见下方及 `resource-tags-release-results.json`。
+
+### 前端范围审计
+
+本表仅评估新增标签区域，不代表整站无障碍认证。实现一致性通过：沿用现有排版、色板与细线布局，检测器没有新发现；未知、无标签、空结果和查询失败均有明确文案。
+
+| 维度 | 评分 | 依据与范围 |
+|---|---:|---|
+| 可访问性 | 3/4 | 原生 details/summary、文字状态、手机展开控件至少44px；未做整站读屏验收 |
+| 性能 | 4/4 | 无新依赖和请求；标签提取和汇总有数量上限 |
+| 响应式 | 4/4 | 四种宽度及80字标签检查无页面溢出，手机按源顺排 |
+| 主题一致性 | 3/4 | 延续已选白蓝单主题和现有 token；本次未新增其他主题 |
+| 实现完整性 | 4/4 | 真实响应支持字段映射，标签安全输出且不写入历史，未改变去重胜出 |
+| 合计 | 18/20 | 本次范围无新增 P0/P1/P2/P3 待办 |
+
+## 正式镜像与 OVH 验收
+
+PR #7 已合并，发布 v1.5.2。运行构建为 `cf58ec03c395278143992b4a07f9bb7441a8077a`，amd64 / arm64 镜像已发布。OVH 使用固定摘要：
+
+```text
+violin321/bm-bt-proxy@sha256:816acdd31720f56627a2e98a62c291e4a8a3c118612a7a5e34e3406f7de697ec
+```
+
+正式 amd64 镜像中通过协议／聚合17项、标签4项和统计8项；适配器0.2.1镜像中通过22项。隔离数据与适配器实测五源成功、26条去重结果，JavDB的“字幕”标签4条及Knaben的XXX分类2条均保留。正常 Byte-Muse `BT.search` 入口对旧版与隔离新版均返回26条，资源ID集合相同。
+
+首次正式验收的脚本直接将原始 AVDB 记录套用 Torrent 模型，绕过 Byte-Muse 正常补全 `type=bt` 的过程，因而误报并触发回滚。确认旧版同样缺少原始 type 字段、真实 BT.search 两版均正常后，修正验收入口，再次部署通过；应用代码没有为此改动。两次备份均保留，回滚不还原累计历史。
+
+最终 BM-BT 1.5.2 与适配器0.2.1均 healthy。五源实测、公开接口及真实消费端均正常。原配置逐字节未变，API Key与旧登录Cookie有效，113条部署前历史全部保留；消费端与浏览器验收后共117条，SQLite检查为ok。Jackett仍使用Knaben、排序偏好仍关闭，数据库、AVDB与Byte-Muse等其他容器未重启。
+
+正式浏览器1440/390px显示真实标签与原始属性，无横向溢出、无捕获到的JS异常；未保存设置、未触发下载或订阅。该手机宽度检查不是实体手机测试。临时BM-BT与适配器容器已移除，本轮本地预览已停止；私有备份和 `rollback.py` 保留在 OVH `/root/docker/bm-bt-proxy-releases/1.5.2-20261107`。

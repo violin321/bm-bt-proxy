@@ -1,0 +1,498 @@
+{
+  "stage": {
+    "checked_at_utc": "2026-11-07T03:54:08.357423+00:00",
+    "image": "violin321/bm-bt-proxy@sha256:816acdd31720f56627a2e98a62c291e4a8a3c118612a7a5e34e3406f7de697ec",
+    "image_id": "sha256:7b5f31c39b3503e10f2a8e98016b919ca50c6a34abb3d424cb2fe262afae81a7",
+    "revision": "cf58ec03c395278143992b4a07f9bb7441a8077a",
+    "version": "1.5.2",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "backend_contracts": 17,
+    "metadata_contracts": 4,
+    "adapter_contracts": 22,
+    "statistics_contracts": 8,
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "time_ms": 1557,
+    "runtime_version_matches_build": true,
+    "version_authenticated": true,
+    "production_unchanged": true,
+    "source_labels_before_dedup": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 8,
+        "resource_metadata": {
+          "count": 8,
+          "labelled_count": 4,
+          "labels": [
+            {
+              "field": "category",
+              "value": "无码高清",
+              "count": 2
+            },
+            {
+              "field": "tags",
+              "value": "98T",
+              "count": 1
+            },
+            {
+              "field": "category",
+              "value": "无码破解",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 8,
+              "false": 0
+            },
+            "chinese": {
+              "true": 3,
+              "false": 5
+            },
+            "uc": {
+              "true": 2,
+              "false": 6
+            },
+            "uncensored": {
+              "true": 4,
+              "false": 4
+            },
+            "uhd": {
+              "true": 1,
+              "false": 7
+            },
+            "hd": {
+              "true": 7,
+              "false": 1
+            },
+            "mosaic": {
+              "true": 2,
+              "false": 6
+            }
+          }
+        }
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 6,
+        "resource_metadata": {
+          "count": 6,
+          "labelled_count": 0,
+          "labels": [],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 6,
+              "false": 0
+            },
+            "chinese": {
+              "true": 2,
+              "false": 4
+            },
+            "uc": {
+              "true": 2,
+              "false": 4
+            },
+            "uhd": {
+              "true": 1,
+              "false": 5
+            }
+          }
+        }
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 17,
+        "resource_metadata": {
+          "count": 17,
+          "labelled_count": 15,
+          "labels": [
+            {
+              "field": "tags",
+              "value": "高清",
+              "count": 13
+            },
+            {
+              "field": "tags",
+              "value": "破解",
+              "count": 5
+            },
+            {
+              "field": "tags",
+              "value": "字幕",
+              "count": 4
+            },
+            {
+              "field": "tags",
+              "value": "UHD",
+              "count": 2
+            },
+            {
+              "field": "tags",
+              "value": "LTX",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {}
+        }
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 15,
+        "resource_metadata": {
+          "count": 15,
+          "labelled_count": 13,
+          "labels": [
+            {
+              "field": "tags",
+              "value": "高清",
+              "count": 11
+            },
+            {
+              "field": "tags",
+              "value": "字幕",
+              "count": 4
+            },
+            {
+              "field": "tags",
+              "value": "破解",
+              "count": 1
+            },
+            {
+              "field": "tags",
+              "value": "UHD",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 0,
+              "false": 15
+            },
+            "chinese": {
+              "true": 4,
+              "false": 11
+            },
+            "uc": {
+              "true": 1,
+              "false": 14
+            },
+            "uhd": {
+              "true": 1,
+              "false": 14
+            },
+            "hd": {
+              "true": 11,
+              "false": 4
+            },
+            "mosaic": {
+              "true": 14,
+              "false": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 2,
+        "resource_metadata": {
+          "count": 2,
+          "labelled_count": 2,
+          "labels": [
+            {
+              "field": "category",
+              "value": "XXX",
+              "count": 2
+            }
+          ],
+          "labels_limited": false,
+          "flags": {}
+        }
+      }
+    ]
+  },
+  "production": {
+    "checked_at_utc": "2026-11-07T03:58:39.094598+00:00",
+    "version": {
+      "version": "1.5.2",
+      "revision": "cf58ec03c395278143992b4a07f9bb7441a8077a"
+    },
+    "image": "violin321/bm-bt-proxy@sha256:816acdd31720f56627a2e98a62c291e4a8a3c118612a7a5e34e3406f7de697ec",
+    "image_id": "sha256:7b5f31c39b3503e10f2a8e98016b919ca50c6a34abb3d424cb2fe262afae81a7",
+    "source_count": 5,
+    "success_count": 5,
+    "unique_count": 26,
+    "public_count": 26,
+    "time_ms": 1468,
+    "config_bytes_unchanged": true,
+    "api_credentials_unchanged": true,
+    "old_cookie_valid": true,
+    "history_before": 113,
+    "history_after": 115,
+    "original_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "unrelated_containers_unchanged": true,
+    "scope": "knaben",
+    "adapter_version": "0.2.1",
+    "adapter_image_id": "sha256:16413761beef131dac83551e6b71b3f4daeba9570860f61aefc1f748c0c27641",
+    "consumer_schema_validated": true,
+    "source_labels_before_dedup": [
+      {
+        "id": "02a6e3b9",
+        "name": "本机 AVDB (色花堂/LTX)",
+        "count": 8,
+        "resource_metadata": {
+          "count": 8,
+          "labelled_count": 4,
+          "labels": [
+            {
+              "field": "category",
+              "value": "无码高清",
+              "count": 2
+            },
+            {
+              "field": "tags",
+              "value": "98T",
+              "count": 1
+            },
+            {
+              "field": "category",
+              "value": "无码破解",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 8,
+              "false": 0
+            },
+            "chinese": {
+              "true": 3,
+              "false": 5
+            },
+            "uc": {
+              "true": 2,
+              "false": 6
+            },
+            "uncensored": {
+              "true": 4,
+              "false": 4
+            },
+            "uhd": {
+              "true": 1,
+              "false": 7
+            },
+            "hd": {
+              "true": 7,
+              "false": 1
+            },
+            "mosaic": {
+              "true": 2,
+              "false": 6
+            }
+          }
+        }
+      },
+      {
+        "id": "529782a6",
+        "name": "修仙",
+        "count": 6,
+        "resource_metadata": {
+          "count": 6,
+          "labelled_count": 0,
+          "labels": [],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 6,
+              "false": 0
+            },
+            "chinese": {
+              "true": 2,
+              "false": 4
+            },
+            "uc": {
+              "true": 2,
+              "false": 4
+            },
+            "uhd": {
+              "true": 1,
+              "false": 5
+            }
+          }
+        }
+      },
+      {
+        "id": "a4d1d9ff",
+        "name": "DB Online (JavDB)",
+        "count": 17,
+        "resource_metadata": {
+          "count": 17,
+          "labelled_count": 15,
+          "labels": [
+            {
+              "field": "tags",
+              "value": "高清",
+              "count": 13
+            },
+            {
+              "field": "tags",
+              "value": "破解",
+              "count": 5
+            },
+            {
+              "field": "tags",
+              "value": "字幕",
+              "count": 4
+            },
+            {
+              "field": "tags",
+              "value": "UHD",
+              "count": 2
+            },
+            {
+              "field": "tags",
+              "value": "LTX",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {}
+        }
+      },
+      {
+        "id": "cfac511a",
+        "name": "DB Online (Nyaa)",
+        "count": 15,
+        "resource_metadata": {
+          "count": 15,
+          "labelled_count": 13,
+          "labels": [
+            {
+              "field": "tags",
+              "value": "高清",
+              "count": 11
+            },
+            {
+              "field": "tags",
+              "value": "字幕",
+              "count": 4
+            },
+            {
+              "field": "tags",
+              "value": "破解",
+              "count": 1
+            },
+            {
+              "field": "tags",
+              "value": "UHD",
+              "count": 1
+            }
+          ],
+          "labels_limited": false,
+          "flags": {
+            "free": {
+              "true": 0,
+              "false": 15
+            },
+            "chinese": {
+              "true": 4,
+              "false": 11
+            },
+            "uc": {
+              "true": 1,
+              "false": 14
+            },
+            "uhd": {
+              "true": 1,
+              "false": 14
+            },
+            "hd": {
+              "true": 11,
+              "false": 4
+            },
+            "mosaic": {
+              "true": 14,
+              "false": 1
+            }
+          }
+        }
+      },
+      {
+        "id": "64a7b6f0",
+        "name": "Jackett",
+        "count": 2,
+        "resource_metadata": {
+          "count": 2,
+          "labelled_count": 2,
+          "labels": [
+            {
+              "field": "category",
+              "value": "XXX",
+              "count": 2
+            }
+          ],
+          "labels_limited": false,
+          "flags": {}
+        }
+      }
+    ],
+    "downloads": 0,
+    "subscriptions": 0,
+    "final_history_count": 117,
+    "stage_removed": true,
+    "rollback_retained": true
+  },
+  "browser": {
+    "checkedAt": "2026-11-07T03:59:18.069Z",
+    "checks": [
+      "live five-source query displays JavDB subtitle labels and Knaben category before deduplication",
+      "real 1440px original labels and boolean fields fit without overflow",
+      "real 390px original labels and boolean fields fit without overflow",
+      "zero browser exceptions; configuration and default-off sorting preferences preserved"
+    ],
+    "errors": [],
+    "realProduction": true,
+    "physicalPhone": false,
+    "settingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "sourceCount": 5,
+    "uniqueCount": 26
+  },
+  "actualConsumerBaselineComparison": [
+    {
+      "route": "baseline",
+      "count": 26,
+      "types": [
+        "bt"
+      ]
+    },
+    {
+      "route": "stage",
+      "count": 26,
+      "types": [
+        "bt"
+      ]
+    }
+  ],
+  "initialGateFalsePositive": {
+    "directModelValidationOmittedByteMuseNormalization": true,
+    "rollbackExercised": true,
+    "applicationChangeNeeded": false
+  }
+}
