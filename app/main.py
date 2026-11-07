@@ -21,13 +21,19 @@ from app.config import (
     clean_headers,
     AppSettings,
     UpstreamSource,
+    request_config,
+    public_source,
 )
 from app.stats import RequestStats
+from app.providers import fetch_source
+from app.aggregation import merge_results
+from pydantic import ValidationError
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("bm-bt-proxy")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-app = FastAPI(title="BM-BT-Proxy", version="1.4.0")
+app = FastAPI(title="BM-BT-Proxy", version="1.5.0")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 WEB_USERNAME = os.getenv("WEB_USERNAME", "").strip()
@@ -139,7 +145,9 @@ async def serve_index(request: Request):
 
 @app.get("/api/settings", dependencies=[Depends(require_auth)])
 async def get_settings():
-    return settings.model_dump()
+    value = settings.model_dump(exclude={"sources"})
+    value["sources"] = [public_source(s) for s in settings.sources]
+    return value
 
 
 @app.get("/api/stats", dependencies=[Depends(require_auth)])
@@ -187,35 +195,97 @@ async def detect_name(body: Dict[str, Any] = Body(...)):
 
 @app.get("/api/sources", dependencies=[Depends(require_auth)])
 async def get_sources():
-    return [s.model_dump() for s in settings.sources]
+    return [public_source(s) for s in settings.sources]
+
+
+def parse_source(data, previous=None):
+    data = dict(data)
+    data.pop("has_jackett_api_key", None)
+    if previous is not None:
+        data = {**previous.model_dump(), **data}
+    if not isinstance(data.get("url"), str):
+        raise HTTPException(422, "请填写有效的 HTTP / HTTPS 地址")
+    data["url"] = clean_url(data.get("url", ""))
+    raw_headers = data.get("headers", {})
+    if not isinstance(raw_headers, (dict, str)):
+        raise HTTPException(422, "请求头需为 JSON 对象或 Token")
+    if isinstance(raw_headers, dict) and any(not isinstance(v, str) for v in raw_headers.values()):
+        raise HTTPException(422, "请求头值必须为字符串")
+    if isinstance(raw_headers, str) and raw_headers.strip().startswith(("{", "[")):
+        import json
+        try:
+            parsed = json.loads(raw_headers)
+            if not isinstance(parsed, dict) or any(not isinstance(v, str) for v in parsed.values()):
+                raise ValueError()
+        except ValueError:
+            raise HTTPException(422, "请求头 JSON 格式无效") from None
+    data["headers"] = clean_headers(raw_headers)
+    if previous is None:
+        data.pop("id", None)
+        if data.get("source_type") == "jackett":
+            data.setdefault("timeout", 20)
+            data.setdefault("priority", 200)
+    try:
+        return UpstreamSource(**{**data, **({"id": previous.id} if previous else {})})
+    except (ValidationError, ValueError):
+        raise HTTPException(422, "源配置无效，请检查地址、请求头、超时、优先级和站点标识") from None
+
+
+@app.post("/api/jackett/indexers", dependencies=[Depends(require_auth)])
+async def jackett_indexers(body: Dict[str, Any] = Body(...)):
+    from xml.etree import ElementTree
+    from app.providers import jackett_path
+    previous = next((s for s in settings.sources if s.id == body.get("source_id")), None)
+    source = parse_source({**body, "source_type": "jackett", "jackett_indexer": "all"}, previous)
+    if not source.jackett_api_key:
+        raise HTTPException(422, "请先填写 Jackett API Key")
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=10) as client:
+            response = await client.get(jackett_path(source, "/torznab/api"),
+                                        params={"apikey": source.jackett_api_key, "t": "indexers", "configured": "true"},
+                                        headers=source.headers)
+        response.raise_for_status()
+        root = ElementTree.fromstring(response.content)
+        if root.tag != "indexers":
+            raise ValueError()
+        return {"indexers": [{"id": e.get("id"), "name": e.findtext("title") or e.get("id")}
+                             for e in root.findall("indexer") if e.get("configured") == "true"]}
+    except Exception:
+        raise HTTPException(502, "无法读取已配置站点，请检查 Jackett 地址、API Key 和网络") from None
+
+
+@app.post("/api/result-preferences", dependencies=[Depends(require_auth)])
+async def update_preferences(body: Dict[str, Any] = Body(...)):
+    try:
+        rules = AppSettings(result_preferences=body.get("result_preferences", [])).result_preferences
+    except ValidationError:
+        raise HTTPException(422, "排序规则无效，同一标签只能配置一次") from None
+    settings.result_preferences = rules
+    save_settings(settings)
+    return {"result_preferences": rules}
 
 
 @app.post("/api/sources", dependencies=[Depends(require_auth)])
 async def add_source(source_data: Dict[str, Any] = Body(...)):
-    global settings
-    source_data["url"] = clean_url(source_data.get("url", ""))
-    source_data["headers"] = clean_headers(source_data.get("headers", {}))
-    new_source = UpstreamSource(**source_data)
+    new_source = parse_source(source_data)
     settings.sources.append(new_source)
     save_settings(settings)
-    return new_source.model_dump()
+    return public_source(new_source)
 
 
 @app.put("/api/sources/{source_id}", dependencies=[Depends(require_auth)])
 async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...)):
-    global settings
-    for i, s in enumerate(settings.sources):
-        if s.id == source_id:
-            source_data["url"] = clean_url(source_data.get("url", ""))
-            source_data["headers"] = clean_headers(source_data.get("headers", {}))
-            updated = UpstreamSource(**{**source_data, "id": source_id})
-            old_config = s.model_dump(exclude={"name", "config_revision"})
-            new_config = updated.model_dump(exclude={"name", "config_revision"})
-            updated.config_revision = secrets.token_hex(8) if old_config != new_config else s.config_revision
+    for i, source in enumerate(settings.sources):
+        if source.id == source_id:
+            updated = parse_source(source_data, source)
+            old_config, new_config = request_config(source), request_config(updated)
+            old_config.pop("config_revision", None)
+            new_config.pop("config_revision", None)
+            updated.config_revision = secrets.token_hex(8) if old_config != new_config else source.config_revision
             settings.sources[i] = updated
             save_settings(settings)
-            return updated.model_dump()
-    raise HTTPException(status_code=404, detail="Source not found")
+            return public_source(updated)
+    raise HTTPException(404, "Source not found")
 
 
 @app.delete("/api/sources/{source_id}", dependencies=[Depends(require_auth)])
@@ -227,65 +297,24 @@ async def delete_source(source_id: str):
 
 
 def extract_dedup_key(item: Dict[str, Any]) -> str:
-    if not isinstance(item, dict):
-        return ""
-
-    link = item.get("magnet") or item.get("download_url") or ""
-    if link:
-        m = re.search(r"urn:btih:([a-zA-Z0-9]{32,40})", link, re.IGNORECASE)
-        if m:
-            return f"btih:{m.group(1).upper()}"
-        m_ed2k = re.search(r"\|file\|[^|]+\|[^|]+\|([a-fA-F0-9]{32})\|", link)
-        if m_ed2k:
-            return f"ed2k:{m_ed2k.group(1).upper()}"
-        return link.strip()
-
-    title = item.get("title") or item.get("name") or ""
-    return f"title:{title.strip().lower()}" if title else ""
+    from app.aggregation import dedup_key
+    return dedup_key(item)
 
 
-async def fetch_single_source(client: httpx.AsyncClient, source: UpstreamSource, keyword: str) -> Dict[str, Any]:
-    start = time.time()
-    result = {
-        "id": source.id,
-        "name": source.name,
-        "success": False,
-        "status_code": None,
-        "latency_ms": 0,
-        "count": 0,
-        "error": None,
-        "items": [],
-    }
-    try:
-        if source.method == "POST":
-            payload = {source.keyword_field: keyword}
-            resp = await client.post(source.url, json=payload, headers=source.headers, timeout=source.timeout)
-        else:
-            params = {source.keyword_field: keyword}
-            resp = await client.get(source.url, params=params, headers=source.headers, timeout=source.timeout)
+# Retain the internal entry point used by existing integrations.
+fetch_single_source = fetch_source
 
-        result["status_code"] = resp.status_code
-        if resp.status_code == 200:
-            res_json = resp.json()
-            items = []
-            if isinstance(res_json, dict) and "data" in res_json:
-                data = res_json["data"]
-                if isinstance(data, list):
-                    items = data
-            elif isinstance(res_json, list):
-                items = res_json
 
-            result["items"] = items
-            result["count"] = len(items)
-            result["success"] = True
-        else:
-            result["error"] = f"HTTP {resp.status_code}"
-    except Exception as e:
-        result["error"] = str(e)
-    finally:
-        result["latency_ms"] = int((time.time() - start) * 1000)
-
-    return result
+async def run_search(targets, keyword):
+    start = time.monotonic()
+    # Snapshot settings so edits during a request cannot mix two configurations.
+    targets = [s.model_copy(deep=True) for s in targets]
+    preferences = list(settings.result_preferences)
+    async with httpx.AsyncClient(verify=False) as client:
+        results = await asyncio.gather(*(fetch_single_source(client, source, keyword) for source in targets))
+    merged = merge_results(targets, results, preferences)
+    elapsed = int((time.monotonic() - start) * 1000)
+    return targets, results, merged, elapsed
 
 
 @app.post("/api/test", dependencies=[Depends(require_auth)])
@@ -301,40 +330,10 @@ async def test_search(body: Dict[str, Any] = Body(...)):
     if not targets:
         return {"data": [], "details": [], "total_time_ms": 0}
 
-    start = time.time()
-    details = []
-    all_torrents = []
-
-    async with httpx.AsyncClient(verify=False) as client:
-        tasks = [fetch_single_source(client, src, keyword) for src in targets]
-        res_list = await asyncio.gather(*tasks)
-
-        for res in res_list:
-            details.append({
-                "id": res["id"],
-                "name": res["name"],
-                "success": res["success"],
-                "status_code": res["status_code"],
-                "latency_ms": res["latency_ms"],
-                "count": res["count"],
-                "error": res["error"],
-            })
-            all_torrents.extend(res["items"])
-
-    seen = set()
-    deduped = []
-    for item in all_torrents:
-        key = extract_dedup_key(item)
-        if key:
-            if key not in seen:
-                seen.add(key)
-                deduped.append(item)
-        else:
-            deduped.append(item)
-
-    total_time_ms = int((time.time() - start) * 1000)
-    await asyncio.to_thread(request_stats.record, "test", keyword, targets, res_list, len(deduped), total_time_ms)
-    return {"data": deduped, "details": details, "total_time_ms": total_time_ms}
+    targets, results, merged, elapsed = await run_search(targets, str(keyword))
+    details = [{k: v for k, v in result.items() if k != "items"} for result in results]
+    await asyncio.to_thread(request_stats.record, "test", str(keyword), targets, results, len(merged["data"]), elapsed)
+    return {**merged, "details": details, "total_time_ms": elapsed}
 
 
 @app.api_route("/api/torrents", methods=["GET", "POST"], dependencies=[Depends(verify_api_key)])
@@ -345,27 +344,6 @@ async def aggregate_torrents(keyword: Optional[str] = Query(default="")):
         return {"data": []}
 
     search_kw = keyword or ""
-    start = time.monotonic()
-    all_torrents = []
-
-    async with httpx.AsyncClient(verify=False) as client:
-        tasks = [fetch_single_source(client, src, search_kw) for src in enabled_sources]
-        results = await asyncio.gather(*tasks)
-        for res in results:
-            if res["success"]:
-                all_torrents.extend(res["items"])
-
-    seen = set()
-    deduped = []
-    for item in all_torrents:
-        key = extract_dedup_key(item)
-        if key:
-            if key not in seen:
-                seen.add(key)
-                deduped.append(item)
-        else:
-            deduped.append(item)
-
-    await asyncio.to_thread(request_stats.record, "api", search_kw, enabled_sources, results,
-                            len(deduped), int((time.monotonic() - start) * 1000))
-    return {"data": deduped}
+    targets, results, merged, elapsed = await run_search(enabled_sources, search_kw)
+    await asyncio.to_thread(request_stats.record, "api", search_kw, targets, results, len(merged["data"]), elapsed)
+    return {"data": merged["data"]}

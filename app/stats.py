@@ -9,13 +9,14 @@ import time
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from app.config import request_config
 
 logger = logging.getLogger("bm-bt-proxy")
 
 
 def source_key(source):
     # Includes credentials so results from an old configuration never look current.
-    config = source.model_dump(exclude={"name"})
+    config = request_config(source)
     return hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
 
 
@@ -62,14 +63,16 @@ class RequestStats:
             error = None
             if not r["success"]:
                 code = r.get("status_code")
-                error = f"HTTP {code}" if code else "连接失败或请求超时，请重新测试查看当前响应"
+                error = "全部内部站点失败" if r.get("indexers") else f"HTTP {code}" if code and code != 200 else "连接失败、响应无效或请求超时，请重新测试查看当前响应"
             details.append({
                 "id": r["id"], "name": r["name"], "key": keys[r["id"]],
                 "success": bool(r["success"]), "status_code": r.get("status_code"),
+                "outcome": r.get("outcome", "complete" if r["success"] else "failed"),
+                "indexers": r.get("indexers", []), "skipped_count": r.get("skipped_count", 0),
                 "latency_ms": r["latency_ms"], "count": r["count"], "error": error,
             })
         successes = sum(r["success"] for r in details)
-        outcome = "complete" if successes == len(sources) else "partial" if successes else "failed"
+        outcome = "complete" if successes == len(sources) and all(r["outcome"] == "complete" for r in details) else "partial" if successes else "failed"
         now = time.time() if at is None else at
         try:
             conn = self._connect()
@@ -144,7 +147,7 @@ class RequestStats:
                     public["at"] = datetime.fromtimestamp(row["at"], timezone.utc).isoformat()
                     if value["last"] is None:
                         value["last"] = public
-                    value["history"].append({"at": public["at"], "success": public["success"]})
+                    value["history"].append({"at": public["at"], "success": public["success"], "outcome": public.get("outcome", "complete" if public["success"] else "failed")})
             page = [r for r in rows if (not errors_only or r["outcome"] != "complete") and (before is None or r["id"] < before)]
             count = len(rows)
             ordered = sorted(latencies)

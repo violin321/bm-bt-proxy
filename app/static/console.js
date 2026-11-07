@@ -18,6 +18,7 @@
     savingSource: false,
     securityDirty: false,
     pendingDelete: null,
+    headerMode: "json", revealHeaders: false, ruleDraft: [], preferenceDirty: false, provenance: [],
   };
   const icons = {
     edit: "M16 3 21 8 9 20H4v-5L16 3Zm-2 2 5 5",
@@ -33,7 +34,7 @@
       source.keyword_field,
       source.timeout,
       source.enabled,
-      source.config_revision,
+      source.config_revision, source.source_type || "generic", source.jackett_indexer || "all",
       Object.entries(source.headers || {}).sort(([a], [b]) => a.localeCompare(b)),
     ]);
   }
@@ -334,8 +335,8 @@
       emblem.append(icon("source"));
       const title = el("div", "os-title");
       title.append(el("h3", "", source.name), el("p", "", `${source.method} · ${source.timeout}s · ${source.keyword_field}`));
-      const status = el("span", "source-state " + (source.enabled && last ? last.success ? "state-success" : "state-failed" : ""));
-      status.append(el("span", "status-dot " + (!source.enabled || !last ? "neutral" : last.success ? "" : "failed")), document.createTextNode(!source.enabled ? "已停用" : last ? last.success ? "响应成功" : "请求失败" : "未请求"));
+      const status = el("span", "source-state " + (source.enabled && last ? last.outcome === "partial" ? "state-partial" : last.success ? "state-success" : "state-failed" : ""));
+      status.append(el("span", "status-dot " + (!source.enabled || !last ? "neutral" : last.success ? "" : "failed")), document.createTextNode(!source.enabled ? "已停用" : last ? last.outcome === "partial" ? "部分成功" : last.success ? "响应成功" : "请求失败" : "未请求"));
       top.append(emblem, title, status);
       const metrics = el("div", "os-stats");
       for (const [label, value] of [["最近响应", last ? number(last.latency_ms) + " ms" : "—"], ["最近结果", last ? number(last.count) + " 条" : "—"]]) {
@@ -346,7 +347,7 @@
       const records = [...(value?.history || [])].reverse();
       history.setAttribute("aria-label", records.length ? `最近 ${records.length} 次请求，${records.filter(r=>r.success).length} 次成功` : "尚无请求历史");
       if (!records.length) history.append(el("span", "", "等待第一条请求记录"));
-      else records.forEach((r) => {const mark = el("i", r.success ? "complete" : "failed");mark.title = `${localTime(r.at, true)} · ${r.success ? "成功" : "失败"}`;history.append(mark);});
+      else records.forEach((r) => {const mark = el("i", r.outcome === "partial" ? "partial" : r.success ? "complete" : "failed");mark.title = `${localTime(r.at, true)} · ${r.outcome === "partial" ? "部分成功" : r.success ? "成功" : "失败"}`;history.append(mark);});
       const foot = el("div", "os-footer");
       foot.append(el("span", "", last ? localTime(last.at, true) : "配置保存后，发起一次测试"), button("编辑配置", () => openSource(source), "text-link"));
       card.append(top, metrics, history, foot);
@@ -381,8 +382,9 @@
       const row = el("div", "metric-row");
       const name = el("div", "metric-name"); name.append(el("strong", "", d.name));
       if (d.error) name.append(el("span", "metric-error", d.error));
-      row.append(name, el("span", d.success ? "state-success" : "state-failed", d.success ? "响应成功" : "请求失败"), el("span", "metric-value", d.latency_ms + " ms"), el("span", "metric-value", d.count + " 条"));
+      row.append(name, el("span", d.outcome === "partial" ? "state-partial" : d.success ? "state-success" : "state-failed", d.outcome === "partial" ? "部分成功" : d.success ? "响应成功" : "请求失败"), el("span", "metric-value", d.latency_ms + " ms"), el("span", "metric-value", d.count + " 条"));
       $("requestDetails").append(row);
+      appendIndexerDetails($("requestDetails"), d);
     });
     $("retestRequest").onclick = () => {$("requestDialog").close();startTest();$("testKeyword").value = log.keyword;};
     $("requestDialog").showModal();
@@ -453,7 +455,7 @@
     const filtered = sources.filter(
       (s) =>
         (mode === "all" || Boolean(s.enabled) === (mode === "enabled")) &&
-        `${s.name} ${s.url}`.toLocaleLowerCase().includes(q),
+        `${s.name} ${s.url} ${(s.tags || []).join(" ")} ${s.source_type || "generic"}`.toLocaleLowerCase().includes(q),
     );
     const list = $("sourcesList");
     list.replaceChildren();
@@ -498,14 +500,17 @@
       const name = el("div", "source-name");
       name.append(el("h3", "", s.name || "未命名数据源"));
       if (!s.enabled) name.append(el("span", "tag", "已停用"));
+      const labels = el("div", "source-labels");
+      labels.append(el("span", "tag", s.source_type === "jackett" ? "Jackett" : "通用 API"), el("span", "priority-tag", `优先级 ${s.priority ?? 100}`));
+      (s.tags || []).forEach(tag => labels.append(el("span", "tag", tag)));
       const url = el("code", "source-url", s.url);
       url.title = s.url;
-      identity.append(name, url);
+      identity.append(name, labels, url);
       const req = el("div", "source-request");
       req.setAttribute("role", "cell");
       req.append(
         el("span", "method-tag", s.method),
-        el("div", "source-params", `${s.keyword_field} · ${s.timeout}s`),
+        el("div", "source-params", `${s.source_type === "jackett" ? s.jackett_indexer || "all" : s.keyword_field} · ${s.timeout}s`),
       );
       const test = el("div", "source-test");
       test.setAttribute("role", "cell");
@@ -513,7 +518,7 @@
       const label = el(
         "div",
         "source-state" +
-          (last ? (last.success ? " state-success" : " state-failed") : ""),
+          (last ? (last.outcome === "partial" ? " state-partial" : last.success ? " state-success" : " state-failed") : ""),
       );
       label.append(
         el(
@@ -521,7 +526,7 @@
           "status-dot " + (last ? (last.success ? "" : "failed") : "neutral"),
         ),
         document.createTextNode(
-          last ? (last.success ? "响应成功" : "请求失败") : "未测试",
+          last ? (last.outcome === "partial" ? "部分成功" : last.success ? "响应成功" : "请求失败") : "未测试",
         ),
       );
       const detail = el(
@@ -610,6 +615,7 @@
             invalidateSourceTest(previous.id);
         }
         state.settings = data;
+        if (!state.preferenceDirty) {state.ruleDraft = [...(data.result_preferences || [])];renderPreferences();}
         state.loaded = true;
         renderSources();
         renderOverview();
@@ -644,6 +650,99 @@
       }
     });
   }
+  function updateSourceType(changed) {
+    const jackett = $("formSourceType").value === "jackett";
+    $("jackettFields").hidden = !jackett; $("genericFields").hidden = jackett;
+    if (changed && !$("sourceId").value) {$("formTimeout").value = jackett ? 20 : 10;$("formPriority").value = jackett ? 200 : 100;}
+  }
+  $("formSourceType").addEventListener("change", () => updateSourceType(true));
+  $("loadIndexersBtn").addEventListener("click", () => busy($("loadIndexersBtn"), async () => {
+    const epoch = state.sourceEpoch, keyDraft = $("formJackettKey").value, clearKey = $("clearJackettKey").checked;
+    try {
+      const payload = {url: normalizeUrl($("formUrl").value), source_id: $("sourceId").value, headers: state.headerMode === "rows" ? readHeaderRows() : parseHeaderText()};
+      if ($("clearJackettKey").checked) payload.jackett_api_key = "";
+      else if ($("formJackettKey").value.trim()) payload.jackett_api_key = $("formJackettKey").value.trim();
+      const data = await post("/api/jackett/indexers", payload);
+      if (epoch !== state.sourceEpoch || payload.url !== normalizeUrl($("formUrl").value) || keyDraft !== $("formJackettKey").value || clearKey !== $("clearJackettKey").checked) return;
+      const previous = $("formJackettIndexer").value;
+      $("formJackettIndexer").replaceChildren(new Option("全部已配置站点", "all"));
+      data.indexers.forEach(i => $("formJackettIndexer").append(new Option(i.name, i.id)));
+      if (![...$("formJackettIndexer").options].some(o => o.value === previous)) $("formJackettIndexer").append(new Option(previous + "（未在已配置列表中）", previous));
+      $("formJackettIndexer").value = previous;
+      $("indexerStatus").textContent = `已读取 ${data.indexers.length} 个已配置站点；不代表每个站点均可访问。`;
+    } catch (error) {if (epoch === state.sourceEpoch) $("indexerStatus").textContent = error.message;}
+  }));
+  function parseHeaderText() {
+    const raw = $("formHeaders").value.trim();
+    if (!raw) return {};
+    try {const value = JSON.parse(raw);if (!value || Array.isArray(value) || typeof value !== "object" || Object.values(value).some(v => typeof v !== "string")) throw Error();return value;}
+    catch {if (!/[\n:{}\[\]]/.test(raw)) return {"X-API-Key": raw};throw Error("请求头需为字符串值的 JSON 对象，或单独的 Token。");}
+  }
+  function addHeaderRow(key = "", value = "") {
+    const row = el("div", "header-row");
+    const k = el("input");k.value = key;k.placeholder = "Authorization";k.setAttribute("aria-label", "请求头名称");
+    const v = el("input");v.value = value;v.type = state.revealHeaders ? "text" : "password";v.placeholder = "Bearer …";v.autocomplete = "off";v.setAttribute("aria-label", "请求头值");
+    row.append(k, v, iconButton("移除请求头", "trash", () => row.remove()));$("headerRows").append(row);
+  }
+  function readHeaderRows() {
+    const value = {}, names = new Set();
+    for (const row of $("headerRows").children) {
+      const inputs = row.querySelectorAll("input"), key = inputs[0].value.trim(), content = inputs[1].value.trim();
+      if (!key && !content) continue;
+      if (!key || names.has(key.toLowerCase())) throw Error("请求头名称不能为空或重复。");
+      names.add(key.toLowerCase());value[key] = content;
+    }
+    return value;
+  }
+  function setHeaderMode(mode) {
+    try {
+      if (mode !== state.headerMode && mode === "rows") {const values = parseHeaderText();$("headerRows").replaceChildren();Object.entries(values).forEach(([k,v]) => addHeaderRow(k,v));if (!Object.keys(values).length) addHeaderRow();}
+      if (mode !== state.headerMode && mode === "json") $("formHeaders").value = JSON.stringify(readHeaderRows(), null, 2);
+      state.headerMode = mode;
+      $("headerRowsPanel").hidden = mode !== "rows";$("headersJsonPanel").hidden = mode !== "json";
+      $("headersRowsBtn").setAttribute("aria-pressed", String(mode === "rows"));$("headersJsonBtn").setAttribute("aria-pressed", String(mode === "json"));
+      $("formHeaders").classList.toggle("concealed-value", !state.revealHeaders);
+      $("revealHeadersBtn").textContent = state.revealHeaders ? "隐藏值" : "显示值";
+      $("revealHeadersBtn").setAttribute("aria-pressed", String(state.revealHeaders));
+      $("headerRows").querySelectorAll("input:nth-child(2)").forEach(i => i.type = state.revealHeaders ? "text" : "password");
+    } catch (error) {message("sourceError", error.message, true);}
+  }
+  $("headersRowsBtn").onclick = () => setHeaderMode("rows");$("headersJsonBtn").onclick = () => setHeaderMode("json");
+  $("addHeaderBtn").onclick = () => addHeaderRow();
+  $("revealHeadersBtn").onclick = () => {state.revealHeaders = !state.revealHeaders;setHeaderMode(state.headerMode);};
+  const preferenceNames = {free: "免流", chinese: "中文字幕", uc: "UC / 无码", uhd: "UHD / 4K"};
+  function renderPreferences() {
+    const list = $("preferenceRules");list.replaceChildren();
+    $("preferencesBadge").textContent = state.ruleDraft.length ? `${state.ruleDraft.length} 项标签偏好` : "标签偏好关闭";
+    const ordered = [...state.ruleDraft.map(r => r.replace("!", "")), ...Object.keys(preferenceNames).filter(k => !state.ruleDraft.some(r => r.replace("!", "") === k))];
+    ordered.forEach(key => {
+      const ruleIndex = state.ruleDraft.findIndex(r => r.replace("!", "") === key);
+      const row = el("div", "preference-rule");row.append(el("span", "rule-number", ruleIndex < 0 ? "—" : ruleIndex + 1), el("strong", "", preferenceNames[key]));
+      const select = el("select");select.setAttribute("aria-label", `${preferenceNames[key]}偏好`);
+      select.append(new Option("不参与排序", ""), new Option("优先", key), new Option("靠后", "!" + key));select.value = ruleIndex < 0 ? "" : state.ruleDraft[ruleIndex];
+      select.onchange = () => {if (ruleIndex >= 0) state.ruleDraft.splice(ruleIndex, 1);if (select.value) state.ruleDraft.splice(ruleIndex < 0 ? state.ruleDraft.length : ruleIndex, 0, select.value);state.preferenceDirty = true;renderPreferences();};
+      row.append(select);
+      for (const [text, delta] of [["上移", -1], ["下移", 1]]) {
+        const b = button(text, () => {const next = ruleIndex + delta;[state.ruleDraft[ruleIndex], state.ruleDraft[next]] = [state.ruleDraft[next], state.ruleDraft[ruleIndex]];state.preferenceDirty = true;renderPreferences();}, "btn subtle");
+        b.setAttribute("aria-label", text + preferenceNames[key]);b.disabled = ruleIndex < 0 || ruleIndex + delta < 0 || ruleIndex + delta >= state.ruleDraft.length;row.append(b);
+      }
+      list.append(row);
+    });
+  }
+  $("resetPreferencesBtn").onclick = () => {state.ruleDraft = [];state.preferenceDirty = true;renderPreferences();$("preferencesStatus").textContent = "标签偏好已关闭，保存后生效。";};
+  $("preferencesForm").onsubmit = e => {e.preventDefault();busy($("savePreferencesBtn"), async () => {
+    $("preferencesForm").querySelectorAll("select,button").forEach(n => n.disabled = true);
+    try {const data = await post("/api/result-preferences", {result_preferences: state.ruleDraft});state.settings.result_preferences = data.result_preferences;state.preferenceDirty = false;$("preferencesStatus").textContent = "返回顺序已保存，下次查询生效。Byte-Muse 订阅仍按自身规则选择。";}
+    catch (error) {$("preferencesStatus").textContent = "保存失败：" + error.message;}
+    finally {$("resetPreferencesBtn").disabled = false;renderPreferences();}
+  });};
+  function appendIndexerDetails(parent, detail) {
+    if (!detail.indexers?.length && !detail.skipped_count) return;
+    const box = el("details", "indexer-details");
+    const success = (detail.indexers || []).filter(i => i.success).length;
+    box.append(el("summary", "", `内部站点 ${success} / ${detail.indexers?.length || 0} 成功 · 跳过 ${detail.skipped_count || 0} 条无可用磁链记录`));
+    (detail.indexers || []).slice(0, 200).forEach(i => {const line = el("div", "indexer-line");line.append(el("span", "", i.name),el("span", i.success ? "state-success" : "state-failed", i.success ? `${i.count} 条 · ${i.latency_ms} ms` : i.error || "失败"));box.append(line);});parent.append(box);
+  }
   function openSource(s) {
     if (!state.loaded) {
       toast("请先成功读取配置");
@@ -662,11 +761,24 @@
       ["formTimeout", "timeout"],
     ])
       if (s) $(id).value = s[key];
+    $("formSourceType").value = s?.source_type || "generic";
+    $("formPriority").value = s?.priority ?? 100;
+    $("formTags").value = (s?.tags || []).join(", ");
+    $("formJackettKey").value = "";
+    $("clearJackettKey").checked = false;
+    $("jackettKeyHint").textContent = s?.has_jackett_api_key ? "已保存；留空保留原密钥，填写则替换。" : "仅在后端使用，不写入接入地址。";
+    $("formJackettIndexer").replaceChildren(new Option("全部已配置站点", "all"));
+    if (s?.jackett_indexer && s.jackett_indexer !== "all") $("formJackettIndexer").append(new Option(s.jackett_indexer, s.jackett_indexer));
+    $("formJackettIndexer").value = s?.jackett_indexer || "all";
+    $("indexerStatus").textContent = "";
+    state.headerMode = "json"; state.revealHeaders = false;
+    updateSourceType(false);
     $("formEnabled").checked = s ? s.enabled : true;
     $("formHeaders").value =
       s && Object.keys(s.headers || {}).length
         ? JSON.stringify(s.headers, null, 2)
         : "";
+    setHeaderMode("json");
     message("sourceError", "");
     $("detectStatus").textContent = "";
     let del = $("drawerDelete");
@@ -731,31 +843,9 @@
       $("formUrl").focus();
       return;
     }
-    let headers = {};
-    const raw = $("formHeaders").value.trim();
-    if (raw) {
-      try {
-        headers = JSON.parse(raw);
-        if (
-          !headers ||
-          Array.isArray(headers) ||
-          typeof headers !== "object" ||
-          Object.values(headers).some((v) => typeof v !== "string")
-        )
-          throw Error();
-      } catch {
-        if (!/[\n:{}\[\]]/.test(raw)) headers = { "X-API-Key": raw };
-        else {
-          message(
-            "sourceError",
-            "请求头需为字符串值的 JSON 对象，或单独的 Token。",
-            true,
-          );
-          $("formHeaders").focus();
-          return;
-        }
-      }
-    }
+    let headers;
+    try {headers = state.headerMode === "rows" ? readHeaderRows() : parseHeaderText();}
+    catch (error) {message("sourceError", error.message, true);$("formHeaders").focus();return;}
     const timeout =
       $("formTimeout").value.trim() === ""
         ? 10
@@ -765,7 +855,19 @@
       return;
     }
     const id = $("sourceId").value;
+    const names = new Set();
+    for (const [name, value] of Object.entries(headers)) {
+      if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) || names.has(name.toLowerCase()) || /[\r\n\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)) {
+        message("sourceError", "请求头名称无效、重复或值包含控制字符。", true);return;
+      }
+      names.add(name.toLowerCase());
+    }
+    const priority = Number($("formPriority").value);
+    if (!Number.isInteger(priority) || priority < 0 || priority > 9999) {message("sourceError", "优先级需为 0–9999 的整数。", true);return;}
     const data = {
+      source_type: $("formSourceType").value,
+      priority, tags: $("formTags").value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+      jackett_indexer: $("formJackettIndexer").value || "all",
       name: $("formName").value.trim() || new URL(url).hostname,
       url,
       method: $("formMethod").value,
@@ -774,6 +876,9 @@
       enabled: $("formEnabled").checked,
       headers,
     };
+    if ($("clearJackettKey").checked) data.jackett_api_key = "";
+    else if ($("formJackettKey").value.trim()) data.jackett_api_key = $("formJackettKey").value.trim();
+    const previous = state.settings.sources.find(s => s.id === id);
     state.savingSource = true;
     $("sourceDialog")
       .querySelectorAll("[data-close], #drawerDelete")
@@ -782,12 +887,13 @@
       $("saveSourceBtn"),
       async () => {
         try {
-          await post(
+          const saved = await post(
             id ? "/api/sources/" + encodeURIComponent(id) : "/api/sources",
             data,
             id ? "PUT" : "POST",
           );
-          invalidateSourceTest(id);
+          if (!previous || sourceFingerprint(previous) !== sourceFingerprint(saved)) invalidateSourceTest(id);
+          else if (previous.priority !== saved.priority) message("searchStatus", "源优先级已改变，请重新搜索查看新的返回顺序。");
           $("sourceDialog").close();
           await load();
           toast("数据源已保存");
@@ -954,7 +1060,7 @@
       );
       container.append(n);
     }
-    for (const item of state.results) {
+    for (const [itemIndex, item] of state.results.entries()) {
       const card = el("article", "result");
       const poster = el("div", "poster");
       const url = coverUrl(item);
@@ -981,6 +1087,8 @@
       const body = el("div", "result-body");
       const tags = el("div", "tags");
       tags.append(el("span", "tag", item.site || item.website || "来源未标注"));
+      const origin = state.provenance[itemIndex];
+      if (origin) tags.append(el("span", "priority-tag", `${origin.source_name} · 优先级 ${origin.priority}`));
       for (const [flag, name] of [
         [item.chinese || item.c_sub, "中文字幕"],
         [item.uncensored || item.uc, "无码"],
@@ -1039,12 +1147,12 @@
         name.append(el("span", "metric-error", d.error));
       const status = el(
         "span",
-        "source-state " + (d.success ? "state-success" : "state-failed"),
+        "source-state " + (d.outcome === "partial" ? "state-partial" : d.success ? "state-success" : "state-failed"),
       );
       status.append(
         el("span", "status-dot " + (d.success ? "" : "failed")),
         document.createTextNode(
-          d.success
+          d.outcome === "partial" ? "部分成功" : d.success
             ? `成功 ${d.status_code || ""}`
             : `失败 ${d.status_code || ""}`,
         ),
@@ -1056,7 +1164,13 @@
         el("span", "metric-value", `${d.count ?? 0} 条`),
       );
       $("metrics").append(row);
+      appendIndexerDetails($("metrics"), d);
     });
+    let mergeNote = $("mergeExplanation");
+    if (!mergeNote) {mergeNote = el("details", "merge-explanation");mergeNote.id = "mergeExplanation";$("metrics").after(mergeNote);}
+    mergeNote.replaceChildren(el("summary", "", `排序与去重说明 · ${(data.merge?.duplicates || []).length} 条重复记录`));
+    mergeNote.append(el("p", "small muted", (data.merge?.preferences || []).length ? `标签顺序：${data.merge.preferences.join(" → ")}，之后比较源优先级。` : "标签偏好关闭；按源优先级排序，同级保留原顺序。"));
+    (data.merge?.duplicates || []).slice(0, 20).forEach(d => mergeNote.append(el("p", "small", `保留 ${d.kept_source}，合并 ${d.discarded_source}：${d.reason}`)));
     $("testDiagnostics").hidden = false;
     $("testTime").textContent = state.testedAt.toLocaleTimeString("zh-CN", {
       hour: "2-digit",
@@ -1138,6 +1252,7 @@
           state.results = data.data.filter(
             (item) => item && typeof item === "object" && !Array.isArray(item),
           );
+          state.provenance = Array.isArray(data.provenance) ? data.provenance : [];
           state.details = Array.isArray(data.details)
             ? data.details.filter((d) => d && typeof d === "object")
             : [];
@@ -1162,11 +1277,11 @@
           renderResults();
           switchView(state.view);
           $("resultPanel").hidden = false;
-          const failed = state.details.filter((d) => !d.success).length;
+          const failed = state.details.filter((d) => !d.success || d.outcome === "partial").length;
           message(
             "searchStatus",
             failed
-              ? `测试完成，${failed} 个源请求失败。请查看响应明细；可返回数据源修改配置。`
+              ? `测试完成，${failed} 个源未全部成功。请查看响应明细；可返回数据源修改配置。`
               : "测试完成。可在数据源页面查看本次响应状态。",
             failed > 0,
           );
