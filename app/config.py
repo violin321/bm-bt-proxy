@@ -2,8 +2,8 @@ import json
 import os
 import uuid
 import re
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional, Literal
+from pydantic import BaseModel, Field, field_validator
 
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
@@ -15,19 +15,84 @@ class UpstreamSource(BaseModel):
     name: str = "upstream"
     enabled: bool = True
     url: str
-    method: str = "GET"  # GET or POST
+    source_type: Literal["generic", "jackett"] = "generic"
+    priority: int = Field(default=100, ge=0, le=9999)
+    tags: List[str] = Field(default_factory=list, max_length=20)
+    jackett_indexer: str = "all"
+    jackett_api_key: str = Field(default="", repr=False)
+    method: Literal["GET", "POST"] = "GET"
     headers: Dict[str, str] = Field(default_factory=dict)
     keyword_field: str = "keyword"
-    timeout: float = 10.0
+    timeout: float = Field(default=10.0, ge=0.5, allow_inf_nan=False)
     # Changes whenever request configuration changes, including a change back.
     # Kept in config.json so response history remains valid across restarts.
     config_revision: str = ""
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, value):
+        return list(dict.fromkeys(tag.strip() for tag in value if tag.strip()))
+
+    @field_validator("jackett_indexer")
+    @classmethod
+    def validate_indexer(cls, value):
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", value):
+            raise ValueError("站点标识格式无效")
+        return value
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value):
+        from urllib.parse import urlsplit
+        parsed = urlsplit(value)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            raise ValueError("请填写有效的 HTTP / HTTPS 地址")
+        return value
+
+    @field_validator("headers")
+    @classmethod
+    def validate_headers(cls, value):
+        names = set()
+        for key, item in value.items():
+            if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", key) or key.lower() in names:
+                raise ValueError("请求头名称无效或重复")
+            if any(ord(c) < 32 and c != "\t" or ord(c) == 127 for c in item):
+                raise ValueError("请求头值不能包含换行或控制字符")
+            names.add(key.lower())
+        return value
 
 
 class AppSettings(BaseModel):
     api_key_enabled: bool = False
     api_key: str = ""
     sources: List[UpstreamSource] = Field(default_factory=list)
+    result_preferences: List[str] = Field(default_factory=list)
+
+    @field_validator("result_preferences")
+    @classmethod
+    def validate_preferences(cls, value):
+        seen = set()
+        for rule in value:
+            key = rule.lstrip("!")
+            if rule not in (key, "!" + key) or key not in {"free", "chinese", "uc", "uhd"} or key in seen:
+                raise ValueError("排序标签无效或重复")
+            seen.add(key)
+        return value
+
+
+def request_config(source):
+    """Keep legacy generic-source fingerprints byte-for-byte compatible."""
+    value = source.model_dump(exclude={"name", "priority", "tags", "source_type", "jackett_indexer", "jackett_api_key"})
+    if source.source_type == "jackett":
+        value.update(source_type="jackett", jackett_indexer=source.jackett_indexer,
+                     jackett_api_key=source.jackett_api_key)
+    return value
+
+
+def public_source(source):
+    value = source.model_dump(exclude={"jackett_api_key"})
+    value["has_jackett_api_key"] = bool(source.jackett_api_key)
+    return value
 
 
 def clean_url(raw_url: str) -> str:
@@ -56,9 +121,19 @@ def clean_headers(headers_input: Any) -> Dict[str, str]:
 
 
 def save_settings(settings: AppSettings):
+    import tempfile
     os.makedirs(DATA_DIR, exist_ok=True)
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(settings.model_dump(), f, indent=2, ensure_ascii=False)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=DATA_DIR, delete=False) as f:
+            temporary = f.name
+            json.dump(settings.model_dump(), f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, CONFIG_FILE)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def load_settings() -> AppSettings:

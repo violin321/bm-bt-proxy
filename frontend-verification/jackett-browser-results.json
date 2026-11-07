@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "Jackett defaults, write-only credential input and configured-indexer discovery",
+    "tag filtering, header row/JSON roundtrip, duplicate guard and blank-key preservation",
+    "real search partial outcome, internal indexer diagnostics, skipped torrent and ordering explanation",
+    "resource preference ordering, persistence and default-off reset",
+    "desktop and 390/360px source drawer and preference controls fit the viewport",
+    "overview preserves partial status instead of showing a full success",
+    "zero uncaught browser errors"
+  ],
+  "errors": [],
+  "localOnly": true,
+  "syntheticUpstream": true
+}

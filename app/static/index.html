@@ -79,7 +79,7 @@
                     ><input
                       id="sourceFilter"
                       type="search"
-                      placeholder="筛选名称或地址"
+                      placeholder="筛选名称、地址或标签"
                       aria-label="筛选数据源" /></label
                   ><label class="sr-only" for="sourceStateFilter"
                     >启用状态筛选</label
@@ -325,6 +325,13 @@
                   role="status"
                 ></p>
               </form>
+              <form id="preferencesForm" class="settings-section preference-section">
+                <div class="section-heading"><h2>资源返回顺序</h2><span id="preferencesBadge" class="tag">默认关闭</span></div>
+                <p class="muted small">先比较启用的资源标签，再比较源优先级；条件相同保留原顺序。这里不排除资源，Byte-Muse 订阅会使用自身规则再次选择。</p>
+                <div id="preferenceRules" class="preference-rules"></div>
+                <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭标签偏好</button></div>
+                <p id="preferencesStatus" class="small" role="status"></p>
+              </form>
             </div>
           </section>
           <footer class="page-footer">
@@ -354,7 +361,10 @@
           </button>
         </header>
         <div class="dialog-body">
-          <input id="sourceId" type="hidden" /><label
+          <input id="sourceId" type="hidden" />
+          <div class="drawer-section-heading"><span class="step-label">01</span><h3>基本配置</h3></div>
+          <label class="field" for="formSourceType">数据源类型<select id="formSourceType"><option value="generic">通用 API</option><option value="jackett">Jackett</option></select></label>
+          <label
             class="field"
             for="formName"
             >源名称<input
@@ -377,8 +387,20 @@
               从地址识别名称</button
             ><span id="detectStatus" class="hint" role="status"></span>
           </div>
-          <div class="form-divider"></div>
           <div class="pair">
+            <label class="field" for="formPriority">源优先级<input id="formPriority" type="number" min="0" max="9999" value="100" required /><span class="hint">数字越小越优先；相同优先级按配置顺序。</span></label>
+            <label class="field" for="formTags">分类标签<input id="formTags" placeholder="局域网, 公共, 聚合" /><span class="hint">逗号分隔，仅用于管理筛选。</span></label>
+          </div>
+          <div id="jackettFields" hidden>
+            <label class="field" for="formJackettKey">Jackett API Key<input id="formJackettKey" aria-label="Jackett API Key" type="password" autocomplete="new-password" placeholder="填写 Jackett 的 API Key" /><span id="jackettKeyHint" class="hint">仅在后端使用，不写入接入地址。</span></label>
+            <label class="check-line"><input id="clearJackettKey" type="checkbox" />清除已保存的 Jackett API Key</label>
+            <label class="field" for="formJackettIndexer">搜索范围<select id="formJackettIndexer"><option value="all">全部已配置站点</option></select></label>
+            <button id="loadIndexersBtn" class="btn subtle" type="button">读取已配置站点</button><p id="indexerStatus" class="hint" role="status"></p>
+            <p class="hint">填写基础地址，例如 http://jackett:9117。all 会等待多个站点；超时后其他源仍可返回结果。</p>
+          </div>
+          <div class="form-divider"></div>
+          <div class="drawer-section-heading"><span class="step-label">02</span><h3>请求与鉴权</h3></div>
+          <div class="pair" id="genericFields">
             <label class="field" for="formMethod"
               >请求方式<select id="formMethod" aria-label="请求方式">
                 <option>GET</option>
@@ -408,8 +430,10 @@
               /><span>启用此源</span></label
             >
           </div>
-          <label class="field" for="formHeaders"
-            >请求头 / Token<textarea
+          <div class="header-editor-tools"><span class="small muted">可选请求头</span><div><button id="headersRowsBtn" class="btn subtle" type="button" aria-pressed="false">键值编辑</button><button id="headersJsonBtn" class="btn subtle" type="button" aria-pressed="true">JSON / Token</button><button id="revealHeadersBtn" class="btn subtle" type="button" aria-pressed="false">显示值</button></div></div>
+          <div id="headerRowsPanel" hidden><div id="headerRows"></div><button id="addHeaderBtn" class="text-link" type="button">添加请求头</button></div>
+          <label class="field" id="headersJsonPanel" for="formHeaders"
+            >请求头 / Token<textarea class="concealed-value"
               id="formHeaders"
               aria-label="请求头 / Token"
               rows="5"
