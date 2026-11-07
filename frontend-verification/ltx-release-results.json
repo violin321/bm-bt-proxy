@@ -1,0 +1,176 @@
+{
+  "version": "1.9.0",
+  "date_local": "2026-11-08",
+  "timezone": "Asia/Shanghai",
+  "ovh_production": {
+    "checked_at_utc": "2026-11-07T16:49:56.310239+00:00",
+    "version": "1.9.0",
+    "revision": "32f3fc07416bc3ca6704c0df91f5c295f7ee5821",
+    "image": "violin321/bm-bt-proxy@sha256:9e9f6635e772dab9499955c3869e3403f0da2b6e9d2671a22a7dcad89e07a540",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "contracts": 82,
+    "source_count": 5,
+    "enabled_source_count": 4,
+    "success_count": 4,
+    "ltx_count": 2,
+    "uncensored_count": 6,
+    "standard_unchanged": true,
+    "standard_count": 26,
+    "all_sources_success": true,
+    "public_counts": {
+      "/api/torrents/ltx": 6,
+      "/bt/api/ltx": 6
+    },
+    "authentication_preserved": true,
+    "config_bytes_unchanged": true,
+    "preferences_preserved": true,
+    "credentials_unchanged": true,
+    "history_before": 348,
+    "history_after": 352,
+    "original_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "ports_mounts_networks_preserved": true,
+    "jackett_disabled_preserved": true,
+    "other_containers_unchanged": true,
+    "nas_settings_changed": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "final_checked_at_utc": "2026-11-07T16:53:58.170200+00:00",
+    "stage_removed": true,
+    "rollback_retained": true,
+    "final_history_count": 359,
+    "real_consumer": {
+      "count": 6,
+      "ltx_count": 2,
+      "all_uc": true,
+      "schema_valid": true,
+      "raw_order_preserved": true,
+      "filtered_count": 5,
+      "selection_preserves_order": true,
+      "selected_marked_ltx": true,
+      "settings_changed": false,
+      "downloads": 0,
+      "subscriptions": 0,
+      "checked_at_utc": "2026-11-07T16:51:14.666603+00:00"
+    },
+    "scope": "OVH production deployment and acceptance before later NAS configuration",
+    "contract_execution_platform": "linux/amd64"
+  },
+  "ovh_public_edge": {
+    "checkedAt": "2026-11-07T16:51:24.077Z",
+    "browser": "Microsoft Edge",
+    "publicProduction": true,
+    "checks": [
+      "public Microsoft Edge shows official version and revision",
+      "LTX connection generates dedicated URL and uc default sort with masked API key",
+      "connection UI fits four widths",
+      "live four-source LTX query succeeds and displays resource-level evidence",
+      "live results fit four widths",
+      "no browser exceptions or settings changes"
+    ],
+    "errors": [],
+    "enabledSources": 4,
+    "ltxCount": 2,
+    "uncensoredCount": 6,
+    "settingsChanged": false,
+    "nasSettingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "physicalPhone": false,
+    "scope": "OVH public interface acceptance before later NAS configuration"
+  },
+  "nas_configuration": {
+    "changed_keys": [
+      "BT_URL",
+      "DEFAULT_SORT"
+    ],
+    "bt_path": "/api/torrents/ltx",
+    "default_sort": "uc",
+    "only_uc": true,
+    "all_other_settings_preserved": true,
+    "credentials_preserved": true,
+    "filters_preserved": true,
+    "backup_retained": true,
+    "resource_queries": 0,
+    "manual_downloads": 0,
+    "checked_at_utc": "2026-11-07T17:19:04.619457+00:00",
+    "device": "user NAS",
+    "other_containers_unchanged": true,
+    "image_ports_mounts_networks_preserved": true,
+    "only_bt_url_changed_in_container_environment": true,
+    "compose_persisted": true,
+    "persistent_settings_updated": true,
+    "target_service_recreated_once": true,
+    "authenticated_browser_verified": true,
+    "no_manual_resource_search_or_download": true,
+    "scope": "NAS configuration only; resource queries and consumer selection were tested on OVH; no actual downloads",
+    "authenticated_browser_scope": "Existing logged-in Edge session showed only_uc enabled; sorting verified through live API",
+    "final_readonly_verification": {
+      "checked_at_utc": "2026-11-07T17:28:22.971677+00:00",
+      "rollback_ready": true,
+      "guards_match_current_files": true,
+      "other_containers_unchanged": true,
+      "target_running": true,
+      "same_image": true,
+      "compose_url_persisted": true,
+      "compose_has_default_sort": false
+    },
+    "live_api": {
+      "live_config_read": true,
+      "api_success": true,
+      "endpoint_path": "/api/v1/config",
+      "effective_api_sort": [
+        "uc"
+      ],
+      "effective_bt_path": "/api/torrents/ltx",
+      "only_uc": true
+    },
+    "sort_page_behavior": {
+      "displayed_sort_item_count": 8,
+      "completion_function": "ce",
+      "ui_completes_missing_rules_for_display": true,
+      "display_completion_changes_config_draft": false,
+      "no_move_no_save": {
+        "changes_sort": false,
+        "explanation": "Opening the page completes the separate display list; it does not move or save rules and does not change DEFAULT_SORT."
+      },
+      "save_other_settings_without_sort_move": {
+        "keeps_original_sort_in_draft": true,
+        "explanation": "The config draft retains the API DEFAULT_SORT until a sorting movement updates it."
+      },
+      "move_then_save": {
+        "overwrites_sort_with_full_displayed_list": true,
+        "explanation": "Moving a rule rebuilds draft DEFAULT_SORT from all displayed rules; Save posts that full draft to /config."
+      }
+    },
+    "read_only_verification_side_effects": {
+      "login_calls": 0,
+      "token_changes": 0,
+      "resource_queries": 0,
+      "downloads": 0,
+      "persistent_configuration_changes": 0,
+      "container_restarts": 0
+    },
+    "compose_sort_pin_runtime_guaranteed": false
+  },
+  "limits": {
+    "actual_download_tested": false,
+    "physical_phone_tested": false,
+    "arm64_runtime_contracts_executed": false,
+    "ltx_model_verified_from_media": false,
+    "ltx_evidence": "Explicit upstream resource tags/labels or title markers, not proof of the model used",
+    "subscription_modes_changed": false,
+    "no_qualified_candidates": "Exact uppercase STRICT avoids unqualified fallback downloads in the reviewed consumer; other modes may use the existing traffic-farming path",
+    "ui_sort_display": "Eight visible rules do not equal eight active rules; moving a rule and saving can replace uc-only sorting",
+    "real_query_consumer_selection_scope": "OVH only; NAS verification covered configuration without manual searches or downloads"
+  },
+  "redaction": {
+    "credentials_included": false,
+    "magnets_included": false,
+    "real_resource_titles_included": false
+  }
+}
