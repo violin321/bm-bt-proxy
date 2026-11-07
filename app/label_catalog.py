@@ -155,7 +155,7 @@ class LabelCatalog:
                     labels, limited = clean_directory(result["labels"])
                     coverage = result["coverage"]
                     origin = result.get("origin", "upstream")
-                    if coverage not in {"current_database", "declared_categories"} or origin not in {"upstream", "snapshot"}:
+                    if coverage not in {"current_database", "declared_categories", "cached_movies"} or origin not in {"upstream", "snapshot"}:
                         raise ValueError("目录范围无效")
                     conn.execute("""INSERT INTO directories VALUES (?,?,?,?,?,?,?)
                         ON CONFLICT(source_id,key) DO UPDATE SET payload=excluded.payload,

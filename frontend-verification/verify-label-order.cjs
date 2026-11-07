@@ -22,7 +22,7 @@ const checks=[],errors=[];const pass=name=>{checks.push(name);console.log('PASS'
   assert(cache.sources.find(s=>s.id==='beta').labels.some(l=>l.value==='字幕'&&l.count>=3));
   assert(!JSON.stringify(cache).includes('fixture-secret'));assert(!JSON.stringify(cache).includes('magnet:'));
   pass('authenticated persistent catalog accumulates pre-dedup upstream tags without credential-bearing values');
-  await access();await page.getByRole('heading',{name:'资源标签目录',exact:true}).waitFor();
+  await access();await page.getByRole('heading',{name:'分类与标签目录',exact:true}).waitFor();
   await page.locator('#labelCatalogFilter').fill('字幕');assert.equal(await page.locator('.catalog-source').count(),2);
   await page.locator('#labelCatalogSource').selectOption('beta');assert.equal(await page.locator('.catalog-source').count(),1);
   await page.getByRole('button',{name:'将 DB Online · 验证样本 的 tags 标签 字幕 加入排序',exact:true}).click();

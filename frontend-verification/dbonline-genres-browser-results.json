@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-11-07T14:15:06.085Z",
+  "browser": "Microsoft Edge",
+  "isolated": true,
+  "realBmAndAdapter": true,
+  "controlledDbOnlineFixture": true,
+  "physicalPhone": false,
+  "checks": [
+    "authenticated real HTTP search preserves the default order; film 4K is distinct from HD/4K resource badges",
+    "36 film genres remain available; type filters separate tags/categories and catalog shortcuts create a scoped unsaved draft",
+    "saved scoped genre preference survives reload and sorts multiple films while preserving the same-film order and untagged rows",
+    "defer order works and cache refresh makes no upstream search or following request",
+    "1440/768/390/360px fit, exact-film resources remain stable, and all preferences can be disabled with zero Edge exceptions"
+  ],
+  "errors": [],
+  "screenshots": [
+    "/Users/violin/Documents/ChatGPT/bm-bt/frontend-verification/screenshots/dbonline-genres-1440.png",
+    "/Users/violin/Documents/ChatGPT/bm-bt/frontend-verification/screenshots/dbonline-genres-390.png"
+  ]
+}

@@ -4,6 +4,7 @@ import hashlib
 import math
 import os
 import re
+import unicodedata
 from contextlib import asynccontextmanager
 from typing import Literal
 from urllib.parse import quote, urlsplit
@@ -14,6 +15,8 @@ from fastapi import FastAPI, HTTPException, Query
 BASE_URL = os.getenv('DBONLINE_URL', 'http://db_online:9090').rstrip('/')
 API_KEY = os.getenv('DBONLINE_API_KEY', '')
 MAX_MOVIES = 3
+MAX_GENRE_LABELS = 1000
+MAX_GENRE_ROWS = 10000
 CODE = re.compile(r'([a-zA-Z]{2,12})-?(\d{2,8})\Z')
 MAGNET = re.compile(r'urn:btih:([a-zA-Z0-9]{32,40})(?:&|$)', re.I)
 ED2K = re.compile(r'\|file\|[^|]+\|\d+\|([a-fA-F0-9]{32})\|')
@@ -58,6 +61,7 @@ def resource_tags(value):
 def resources(movie, site='db_online'):
     if not isinstance(movie, dict) or not any(k in movie for k in ('magnets', 'ed2ks')):
         raise UpstreamError('Invalid movie object')
+    genres = resource_tags(movie.get('categories'))
     items, seen = [], set()
     for field, link_field in [('magnets', 'magnet'), ('ed2ks', 'ed2k')]:
         entries = movie.get(field) or []
@@ -95,7 +99,7 @@ def resources(movie, site='db_online'):
                 'site': site, 'type': link_field, 'title': title,
                 'download_url': link, 'size_mb': size,
                 'preview_image': preview, 'date': str(resource.get('date') or ''),
-                'tags': labels,
+                'tags': labels, 'genres': list(genres),
                 'seeders': 0, 'chinese': resource.get('chinese') is True or '字幕' in labels or any(t in flags for t in ('中字', '中文', 'chs', 'chinese')),
                 'uc': resource.get('uc') is True or any(t in flags for t in ('无码', '破解', 'uncensored')),
                 'uhd': resource.get('uhd') is True or any(t in flags for t in ('4k', '2160p', 'uhd')),
@@ -152,6 +156,33 @@ class Provider:
         if value.get('data') is None:
             raise UpstreamError('Missing db_online data')
         return value['data']
+
+    async def genre_catalog(self):
+        async with asyncio.timeout(8):
+            async with self.gate:
+                entries = await self.get('/api/options/categories')
+                if not isinstance(entries, list):
+                    raise UpstreamError('Invalid category directory')
+                labels, seen = [], set()
+                limited = len(entries) > MAX_GENRE_ROWS
+                for entry in entries[:MAX_GENRE_ROWS]:
+                    if not isinstance(entry, dict) or not isinstance(entry.get('name'), str):
+                        raise UpstreamError('Invalid category directory')
+                    names = resource_tags([entry['name']])
+                    if not names:
+                        limited = True
+                        continue
+                    name = names[0]
+                    key = ' '.join(unicodedata.normalize('NFKC', name).casefold().split())
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    if len(labels) == MAX_GENRE_LABELS:
+                        limited = True
+                        continue
+                    labels.append({'field': 'genres', 'value': name})
+                return {'provider': 'db_online', 'coverage': 'cached_movies',
+                        'labels': labels, 'limited': limited}
 
     async def search(self, keyword):
         if not keyword:
@@ -229,7 +260,7 @@ async def lifespan(app):
         yield
 
 
-app = FastAPI(title='db_online BM-BT adapter', version='0.2.1', lifespan=lifespan)
+app = FastAPI(title='db_online BM-BT adapter', version='0.3.0', lifespan=lifespan)
 
 
 @app.get('/health')
@@ -245,6 +276,16 @@ async def search(keyword: str = Query(default='', max_length=200)):
         raise HTTPException(504, 'db_online search timed out') from None
     except UpstreamError:
         raise HTTPException(502, 'db_online search failed') from None
+
+
+@app.get('/api/catalog/genres')
+async def genre_catalog():
+    try:
+        return await app.state.provider.genre_catalog()
+    except TimeoutError:
+        raise HTTPException(504, 'db_online genre directory timed out') from None
+    except UpstreamError:
+        raise HTTPException(502, 'db_online genre directory failed') from None
 
 
 @app.get('/api/torrents/{kind}')
