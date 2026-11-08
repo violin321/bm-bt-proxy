@@ -109,6 +109,42 @@ class Requests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(adapter.UpstreamError):
                 await self.call(lambda r, response=response: response, 'TEST-999')
 
+    async def test_current_movie_not_found_response_is_an_empty_endpoint_result(self):
+        for message in ['无法获取影片信息: 未找到匹配的影片: TEST-999',
+                        '未找到匹配的影片: TEST-999']:
+            with self.subTest(message=message):
+                async with httpx.AsyncClient(base_url='http://upstream.test',
+                        transport=httpx.MockTransport(lambda r: httpx.Response(200, json={
+                            'success': False, 'error': message}))) as upstream:
+                    adapter.app.state.provider = adapter.Provider(upstream)
+                    async with httpx.AsyncClient(base_url='http://adapter.test',
+                            transport=httpx.ASGITransport(app=adapter.app)) as client:
+                        response = await client.get('/api/torrents', params={'keyword': 'test999'})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {'data': []})
+
+    async def test_current_not_found_message_cannot_hide_other_failures(self):
+        for value in [
+                {'success': False, 'error': '无法获取影片信息: 未找到上游服务'},
+                {'success': False, 'error': '无法获取影片信息: 未找到匹配的影片: OTHER-999'},
+                {'success': False, 'error': '未找到匹配的影片: TEST-999; upstream failed'},
+                {'success': False, 'error': ['未找到匹配的影片: TEST-999']},
+                {'error': '未找到匹配的影片: TEST-999'},
+                {'success': True, 'error': '未找到匹配的影片: TEST-999', 'data': None}]:
+            with self.subTest(value=value):
+                with self.assertRaises(adapter.UpstreamError):
+                    await self.call(lambda r: httpx.Response(200, json=value), 'TEST-999')
+        for status in [401, 403, 429, 500, 502, 503]:
+            with self.subTest(status=status):
+                with self.assertRaises(adapter.UpstreamError):
+                    await self.call(lambda r: httpx.Response(status, json={
+                        'success': False, 'error': '未找到匹配的影片: TEST-999'}), 'TEST-999')
+
+    async def test_current_not_found_message_does_not_hide_generic_search_failure(self):
+        with self.assertRaises(adapter.UpstreamError):
+            await self.call(lambda r: httpx.Response(200, json={
+                'success': False, 'error': '未找到匹配的影片: TEST-999'}), 'fixture')
+
     async def test_partial_metadata_failure_is_not_reported_as_success(self):
         def respond(request):
             if request.url.path == '/api/search':

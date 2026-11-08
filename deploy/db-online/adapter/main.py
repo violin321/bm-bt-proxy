@@ -7,7 +7,7 @@ import re
 import unicodedata
 from contextlib import asynccontextmanager
 from typing import Literal
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
@@ -150,7 +150,12 @@ class Provider:
             raise UpstreamError('db_online request failed') from error
         if not isinstance(value, dict) or value.get('success') is not True:
             error = str(value.get('error', '')) if isinstance(value, dict) else ''
-            if missing_ok and ('未找到影片:' in error or 'movie not found' in error.lower()):
+            code = unquote(path[len('/api/video/'):]) if path.startswith('/api/video/') else None
+            current_missing = (isinstance(value, dict) and value.get('success') is False
+                               and isinstance(value.get('error'), str) and code
+                               and error in (f'未找到匹配的影片: {code}',
+                                             f'无法获取影片信息: 未找到匹配的影片: {code}'))
+            if missing_ok and (current_missing or '未找到影片:' in error or 'movie not found' in error.lower()):
                 return None
             raise UpstreamError('db_online returned an error')
         if value.get('data') is None:
@@ -260,7 +265,7 @@ async def lifespan(app):
         yield
 
 
-app = FastAPI(title='db_online BM-BT adapter', version='0.3.0', lifespan=lifespan)
+app = FastAPI(title='db_online BM-BT adapter', version='0.3.1', lifespan=lifespan)
 
 
 @app.get('/health')
