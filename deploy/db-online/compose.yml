@@ -1,7 +1,7 @@
 services:
   bt-adapter:
     build: ./adapter
-    image: bm-db-online-adapter:0.3.0
+    image: bm-db-online-adapter:0.3.1
     container_name: db_online_bt_adapter
     restart: unless-stopped
     environment:
