@@ -1,0 +1,209 @@
+{
+  "date_local": "2026-11-08",
+  "timezone": "Asia/Shanghai",
+  "symptom": "JavDB source reported HTTP 502 for a normal movie-not-found response",
+  "cause": "Adapter did not recognize the exact current Chinese missing-movie message",
+  "baseline": {
+    "recent_requests_sampled": 200,
+    "recent_failures": 11,
+    "failed_cases_replayed": 4,
+    "all_historical_failures_classified": false,
+    "original_consecutive_reproductions": 2,
+    "original_status": 502
+  },
+  "local_regression": {
+    "before_fix": "Endpoint regression reproduced 502 versus expected 200",
+    "after_fix_tests": 37
+  },
+  "isolated_ovh": {
+    "checked_at_utc": "2026-11-08T13:58:00.185153+00:00",
+    "revision": "5f6e79d56e2bc888e6041d1f2c6526225c42a992",
+    "version": "0.3.1",
+    "image_id": "sha256:08b29405d98cacb05a26e659f5ea34cd6686f37b3e150fc0bdd6d0e9d4504980",
+    "contracts": 37,
+    "old_cases": [
+      {
+        "request_id": 902,
+        "kind": "recent_failure",
+        "http_status": 502,
+        "count": null,
+        "body_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "request_id": 899,
+        "kind": "recent_failure",
+        "http_status": 502,
+        "count": null,
+        "body_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "request_id": 855,
+        "kind": "recent_failure",
+        "http_status": 502,
+        "count": null,
+        "body_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "request_id": 826,
+        "kind": "recent_failure",
+        "http_status": 502,
+        "count": null,
+        "body_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "request_id": null,
+        "kind": "known_success",
+        "http_status": 200,
+        "count": 17,
+        "body_sha256": "498fa31ce606847c5cf82606a6b76179dac61d6d1cbdcb62b31ebbeff26058a0"
+      },
+      {
+        "request_id": null,
+        "kind": "known_absent",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      }
+    ],
+    "new_cases": [
+      {
+        "request_id": 902,
+        "kind": "recent_failure",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      },
+      {
+        "request_id": 899,
+        "kind": "recent_failure",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      },
+      {
+        "request_id": 855,
+        "kind": "recent_failure",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      },
+      {
+        "request_id": 826,
+        "kind": "recent_failure",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      },
+      {
+        "request_id": null,
+        "kind": "known_success",
+        "http_status": 200,
+        "count": 17,
+        "body_sha256": "498fa31ce606847c5cf82606a6b76179dac61d6d1cbdcb62b31ebbeff26058a0"
+      },
+      {
+        "request_id": null,
+        "kind": "known_absent",
+        "http_status": 200,
+        "count": 0,
+        "body_sha256": "0e67a643c152d6568c10b21764bb128950c9a0ca8453025af8562206ddc36457"
+      }
+    ],
+    "known_success_unchanged": true,
+    "legacy_empty_unchanged": true
+  },
+  "first_attempt_recovery": {
+    "checked_at_utc": "2026-11-08T14:04:39.830851+00:00",
+    "old_image_restored": true,
+    "old_compose_restored": true,
+    "old_source_restored": true,
+    "health": "healthy",
+    "related_containers_unchanged": true,
+    "reason": "Promotion readiness window was shorter than the Docker healthcheck interval; waits extended before retry"
+  },
+  "production": {
+    "checked_at_utc": "2026-11-08T14:05:38.821436+00:00",
+    "adapter_version": "0.3.1",
+    "revision": "5f6e79d56e2bc888e6041d1f2c6526225c42a992",
+    "adapter_image_id": "sha256:08b29405d98cacb05a26e659f5ea34cd6686f37b3e150fc0bdd6d0e9d4504980",
+    "contracts": 37,
+    "bm_bt_version": "1.9.0",
+    "original_repro_502": true,
+    "recent_failure_cases_fixed": 4,
+    "checks": [
+      {
+        "original_request_id": 902,
+        "kind": "recent_failure",
+        "success": true,
+        "count": 0
+      },
+      {
+        "original_request_id": 899,
+        "kind": "recent_failure",
+        "success": true,
+        "count": 0
+      },
+      {
+        "original_request_id": 855,
+        "kind": "recent_failure",
+        "success": true,
+        "count": 0
+      },
+      {
+        "original_request_id": 826,
+        "kind": "recent_failure",
+        "success": true,
+        "count": 0
+      },
+      {
+        "original_request_id": null,
+        "kind": "known_success",
+        "success": true,
+        "count": 17
+      },
+      {
+        "original_request_id": null,
+        "kind": "known_absent",
+        "success": true,
+        "count": 0
+      }
+    ],
+    "all_enabled_sources_success": true,
+    "enabled_sources": 4,
+    "aggregate_count": 26,
+    "normal_resources_unchanged": true,
+    "legacy_empty_unchanged": true,
+    "bm_config_bytes_preserved": true,
+    "db_credentials_preserved": true,
+    "other_containers_unchanged": false,
+    "ports_mounts_networks_preserved": true,
+    "adapter_environment_preserved": true,
+    "sqlite": "ok",
+    "no_manual_downloads_or_subscriptions": true,
+    "nas_changed": false,
+    "rollback_ready": true,
+    "stage_removed": true,
+    "unrelated_restarts_before_promotion": [
+      "music-dl"
+    ],
+    "unrelated_restarts_during_promotion": [
+      "music-dl"
+    ],
+    "other_container_ids_and_images_preserved": true,
+    "related_services_not_restarted": true
+  },
+  "limits": {
+    "real_download_or_subscription_tested": false,
+    "nas_changed": false,
+    "missing_movies_gain_resources": false,
+    "historical_errors_rewritten": false,
+    "genuine_upstream_errors_suppressed": false,
+    "long_term_stability_proven": false
+  },
+  "redaction": {
+    "credentials_included": false,
+    "query_terms_included": false,
+    "resource_titles_included": false,
+    "magnets_included": false
+  }
+}
