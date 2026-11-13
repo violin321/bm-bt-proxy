@@ -1,0 +1,117 @@
+{
+  "checked_date": "2026-11-13",
+  "timezone": "Asia/Shanghai",
+  "initial_image_comparison": {
+    "checked_at_utc": "2026-11-13T03:20:07.828993+00:00",
+    "running_revision": "32f3fc07416bc3ca6704c0df91f5c295f7ee5821",
+    "latest_revision": "a36d128b6c434a50b9bdec6e0de101182b18b2d8",
+    "running_image": "violin321/bm-bt-proxy@sha256:9e9f6635e772dab9499955c3869e3403f0da2b6e9d2671a22a7dcad89e07a540",
+    "latest_digests": [
+      "violin321/bm-bt-proxy@sha256:ad70557138f5123914ea04f46706634d43f06f7ec4534aabafeade4ef4ef9026"
+    ],
+    "image_identical": false,
+    "app_files_identical": true,
+    "different_app_files": []
+  },
+  "candidate": {
+    "checked_at_utc": "2026-11-13T03:40:17.385987+00:00",
+    "contracts": 89,
+    "version": "1.10.0",
+    "enabled_sources": 3,
+    "all_sources_success": true,
+    "uncensored_results": 5,
+    "ltx_results": 2,
+    "production_config_unchanged": true,
+    "source_password_login": "synthetic_only",
+    "stage_name": "bm-bt-proxy-closeout-stage"
+  },
+  "official": {
+    "checked_at_utc": "2026-11-13T04:00:58.626145+00:00",
+    "version": "1.10.0",
+    "revision": "11e6ea289b4d0e347808c212492f37252c67aff4",
+    "image": "violin321/bm-bt-proxy@sha256:64edf9c3b1497ed1893008af68b4d2631f10cd41ce073bd80b3665dc1ad2b185",
+    "image_id": "sha256:355d88ae20c34a2612f7078c1c61e44ff05bc2e8a4f92487b61d86d788820bb0",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "contracts": 89,
+    "reviewed_app_files_identical": true
+  },
+  "registry": {
+    "latest": "sha256:64edf9c3b1497ed1893008af68b4d2631f10cd41ce073bd80b3665dc1ad2b185",
+    "1.10.0": "sha256:64edf9c3b1497ed1893008af68b4d2631f10cd41ce073bd80b3665dc1ad2b185"
+  },
+  "production": {
+    "checked_at_utc": "2026-11-13T04:03:12.690531+00:00",
+    "version": "1.10.0",
+    "revision": "11e6ea289b4d0e347808c212492f37252c67aff4",
+    "image": "violin321/bm-bt-proxy@sha256:64edf9c3b1497ed1893008af68b4d2631f10cd41ce073bd80b3665dc1ad2b185",
+    "image_id": "sha256:355d88ae20c34a2612f7078c1c61e44ff05bc2e8a4f92487b61d86d788820bb0",
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "contracts": 89,
+    "reviewed_app_files_identical": true,
+    "queries": {
+      "standard": {
+        "results": 17,
+        "success_sources": 3
+      },
+      "ltx": {
+        "results": 5,
+        "success_sources": 3,
+        "ltx_results": 2
+      }
+    },
+    "old_cookie_valid": true,
+    "config_bytes_unchanged": true,
+    "credentials_unchanged": true,
+    "history_before": 1814,
+    "history_after": 1821,
+    "old_history_preserved": true,
+    "sqlite": "ok",
+    "health": "healthy",
+    "ports_mounts_networks_unchanged": true,
+    "other_container_drift": [],
+    "backup": "/root/docker/bm-bt-proxy-releases/1.10.0-20261113/backup-040237",
+    "downloads": 0,
+    "subscriptions": 0,
+    "source_account_login": "synthetic_only",
+    "final_checked_at_utc": "2026-11-13T04:05:30.330039+00:00",
+    "stage_removed": true,
+    "other_containers_unchanged": true,
+    "backup_and_rollback_retained": true
+  },
+  "production_browser": {
+    "checkedAt": "2026-11-13T04:04:35.768Z",
+    "browser": "Microsoft Edge",
+    "production": true,
+    "checks": [
+      "production version and one unified sorting section match the release",
+      "directory account login is available with blank credentials; no source changes submitted",
+      "real production LTX query succeeds for all enabled sources",
+      "zero uncaught browser errors; production configuration unchanged"
+    ],
+    "errors": [],
+    "sourceCount": 3,
+    "resultCount": 5,
+    "ltxCount": 2,
+    "settingsChanged": false,
+    "downloads": 0,
+    "subscriptions": 0,
+    "physicalPhone": false
+  },
+  "dockerhub_overview": {
+    "workflow_run": 43361925935,
+    "status": "success",
+    "content_matches_repository": true,
+    "source_file": "docs/DOCKERHUB.md",
+    "sha256": "9ef873057e571c3cbe37cd2c163734fe8a60dcfdbb14aac9b55d0c33ae71a222"
+  },
+  "image_workflow_run": 43362338321,
+  "image_workflow_status": "success",
+  "source_password_login": "synthetic_credentials_only; actual upstream protocol inspected",
+  "nas_changed": false
+}
