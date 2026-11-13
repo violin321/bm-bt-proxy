@@ -91,7 +91,7 @@ BT_JSON_DATA: ""
 | `GET /api/version` | 当前服务版本与构建提交，需要控制台认证（如已启用） |
 | `/openapi.json` | FastAPI 接口描述 |
 
-启用接口保护后，搜索请求携带 `X-API-Key`，也兼容 `?token=...`。POST 可使用 `keyword` / `q` / `wd`；完整参数见 OpenAPI。管理接口沿用控制台登录认证。
+启用接口保护后，搜索请求携带 `X-API-Key`，也兼容 `?token=...`。GET / POST 均通过查询参数 `?keyword=...` 传入关键词；公开搜索接口不读取 JSON 正文中的关键词。完整参数见 OpenAPI。管理接口沿用控制台登录认证。
 
 ## 升级与维护
 
