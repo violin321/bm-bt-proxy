@@ -1,0 +1,40 @@
+{
+  "checked_date": "2026-11-13",
+  "environment": "local isolated",
+  "suites": [
+    {
+      "file": "stats-contracts.py",
+      "tests": 8
+    },
+    {
+      "file": "jackett-contracts.py",
+      "tests": 17
+    },
+    {
+      "file": "resource-metadata-contracts.py",
+      "tests": 4
+    },
+    {
+      "file": "label-order-contracts.py",
+      "tests": 19
+    },
+    {
+      "file": "directory-contracts.py",
+      "tests": 14
+    },
+    {
+      "file": "dbonline-genres-contracts.py",
+      "tests": 6
+    },
+    {
+      "file": "ltx-contracts.py",
+      "tests": 14
+    },
+    {
+      "file": "catalog-auth-contracts.py",
+      "tests": 7
+    }
+  ],
+  "total_tests": 89,
+  "all_passed": true
+}

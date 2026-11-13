@@ -32,6 +32,14 @@
 .header-row {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 34px;gap:7px;margin-bottom:9px;}
 .header-row input {min-width:0;width:100%;border:1px solid var(--line);border-radius:7px;padding:9px;font-size:12px;}
 .preference-section {grid-column:1 / -1;}
+.ordering-subheading {font-size:13px;margin:24px 0 8px;}
+.ordering-catalog {border-top:1px solid var(--line);margin-top:26px;padding-top:24px;}
+.ordering-catalog h4 {font-size:13px;}
+.preference-section>p,.preference-section form>p {line-height:1.8;max-width:75ch;}
+.label-rule-builder summary {cursor:pointer;font-size:13px;min-height:32px;display:list-item;}
+.label-rule-builder[open]>summary {margin-bottom:10px;}
+#catalogAccountFields .field {margin-bottom:14px;}
+@media(max-width:600px){.label-rule-builder summary {min-height:44px;}}
 .preference-rules {margin:20px 0;}
 .preference-rule {display:grid;grid-template-columns:28px minmax(110px,1fr) 120px auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);}
 .inactive-rule .rule-number {opacity:.5;}

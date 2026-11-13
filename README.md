@@ -1,118 +1,128 @@
-# BM-BT-Proxy (`violin321/bm-bt-proxy`)
+# BM-BT-Proxy
 
-[![Docker Image](https://img.shields.io/badge/docker-violin321%2Fbm--bt--proxy-blue.svg)](https://hub.docker.com/r/violin321/bm-bt-proxy)
-[![Architecture](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-brightgreen.svg)]()
+将多个 BT 搜索源接入 Byte-Muse 的同一个 `BT_URL`，并在 Web 控制台管理连接、排查失败和调整结果顺序。
 
-用于解决 **Byte-Muse** 仅支持单个 `BT_URL` 配置限制的轻量异步 BT 聚合中继服务，**自带现代化 WebUI 控制台**。
+[![Docker](https://img.shields.io/docker/v/violin321/bm-bt-proxy?sort=semver&label=Docker)](https://hub.docker.com/r/violin321/bm-bt-proxy)
+[![Build](https://github.com/violin321/bm-bt-proxy/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/violin321/bm-bt-proxy/actions/workflows/docker-publish.yml)
 
----
+- **多源聚合**：并发请求 GET / POST 源，按磁链、ED2K 等标识去重；保留各源耗时、错误和部分成功状态。
+- **数据源管理**：支持通用 HTTP 接口、原生 Jackett，以及独立部署的 DB Online 适配器。每源可配置请求头、超时和去重优先级。
+- **运行概览**：查看业务查询与手动测试的趋势、最近源响应和请求详情；状态代表最近一次请求。
+- **搜索结果排序**：将资源属性、源分类、磁链标签和影片风格加入同一排序队列；默认关闭，保存后生效。
+- **目录登录**：AVDB / 修仙兼容源可用账号密码取得目录会话，支持 AVDB 二次验证码；保留高级 Cookie / Authorization 方式。仅保存已校验的会话，账号密码和验证码不落盘。
+- **LTX 优选**：独立接口优先返回带明确 LTX 标记的无码资源，保留其他无码候选供 Byte-Muse 筛选后兜底。
 
-## 🌟 核心特性
+![运行概览演示](docs/images/overview-demo.png)
 
-- **现代 WebUI 控制台**：打开浏览器即可直接管理 BT 源，无需反复修改重启 Compose 文件。
-- **在线联调与即时测试**：在 WebUI 上直接输入关键词（如番号/名称），实时测试各个源的响应耗时、状态码、返回结果，并查看去重效果。
-- **多源混合聚合**：支持配置无限数量的外部 BT 源（支持 GET 与 POST 请求混合配置）。
-- **独立请求头与鉴权**：可为每个 BT 源单独指定 Headers（如 `X-API-Key`、`Authorization` 等）。
-- **持久化保存**：挂载 `/data` 目录即可持久化保存通过 WebUI 增删改的配置。
-- **极小体积与多架构**：基于 Alpine Linux 构建，镜像体积仅 ~30MB，支持 `linux/amd64` 与 `linux/arm64`。
+*截图使用隔离合成源及测试数据。*
 
----
+项目边界与数据流见 [项目概览](docs/OVERVIEW.md)，已发布版本见 [Releases](https://github.com/violin321/bm-bt-proxy/releases)。
 
-## 🚀 快速使用 (Docker Compose)
+## Docker 部署
 
-### v1.9.0 LTX 无码优选
-
-新增独立 LTX 优选接口及接入配置，按单条磁链标签或标题的明确 LTX 标记优先，保留其他无码候选供消费端筛选后兜底。Byte-Muse 保留原下载筛选，实际排序需设为 `uc` 以维持接口顺序；标准接口和原源设置保持兼容。详见 [LTX 优选与验证](docs/LTX-PREFERRED-20261108.md)。
-
-### v1.8.0 DB Online 影片风格排序
-
-DB Online 适配器 `0.3.0` 将影片风格独立返回为 `genres`，与磁链标签和清晰度／无码属性分开；复用 Following 的风格选项目录，明确仅覆盖已缓存影片。设置中可按影片风格、源分类和磁链标签筛选，点击加入限定来源与字段的排序草稿，保存后生效。同片磁链共享风格，主要用于多影片关键词排序；原去重、防呆和默认关闭的排序偏好保留。需要同时升级主程序与重建适配器，详情见 [影片风格接入与验收](docs/DBONLINE-GENRES-20261107.md)。
-
-### v1.7.0 上游资源分类目录
-
-资源标签库优先读取源提供的分类目录，再合并搜索发现的标签。支持 AVDB / 修仙兼容分类接口和当前所选 Jackett 站点的 Torznab 目录，注明当前库分类、站点声明分类、权限不足及旧缓存；目录认证单独保存且不回显。Jackett 分类按原始 ID 精确排序，保留文字标签、布尔属性、源优先级去重与默认关闭的排序偏好。详情见 [目录读取与验收](docs/RESOURCE-DIRECTORIES-20261107.md)。
-
-### v1.6.0 已发现标签与排序
-
-新增按源积累的资源标签库，刷新页面和重启后可继续查看。文字标签可限定来源、字段，与免流、中字、UC、UHD一起调整优先/靠后及比较顺序；搜索测试可展开每条结果的规则命中依据。保留原有源优先级去重与无标签资源，规则默认关闭。说明见 [标签库与返回顺序](docs/RESOURCE-LABELS-20261107.md)。
-
-### v1.5.2 上游原始标签
-
-搜索测试按源列出本次返回的原始标签、分类和布尔属性，统计去重前的记录；资源卡片也显示保留记录的原始标签。DB Online 适配器 `0.2.1` 保留标签并识别“字幕”，Jackett 保留分类与文字标签。原始标签不会自动加入排序条件。说明与验收见 [上游标签说明](docs/UPSTREAM-TAGS-20261107.md)。
-
-### v1.5.1 设置与版本信息
-
-顶部显示当前运行版本，“设置”中可查看构建编号与发布记录。Byte-Muse 接入区按访问地址生成 Compose 环境变量；BM-BT 接口保护和资源返回顺序另列。免流、中字、UC、UHD 标签提供含义说明及搜索结果计数，密钥仅在主动复制时带入。说明见 [设置与版本验收](docs/SETTINGS-20261107.md)。
-
-### v1.5.0 数据源与返回顺序
-
-新增原生 Jackett 数据源、内部站点部分失败诊断、源优先级和分类标签。资源标签偏好默认关闭；可在设置调整免流、中字、UC、UHD 的排序。请求头支持键值与 JSON 编辑，Jackett 密钥单独保存。接入与兼容说明见 [Jackett 与排序说明](docs/JACKETT-20261107.md)。
-
-### v1.4.0 运行概览
-
-蓝白横向控制台包含运行概览、数据源、搜索测试和设置。概览统计实际完成的业务搜索与手动测试，区分全部成功、部分成功和全部失败，并提供趋势、源响应历史与请求详情。原有搜索接口及配置保持兼容。
-
-请求历史保存在 `/data/requests.sqlite3`，请将 `/data` 持久化并纳入备份。保留最近30天、最多50,000条，随新请求清理；仅记录启用后的请求。历史包含关键词、源名称、耗时与结果数量，不保存请求头、源 URL 或响应正文。配置修改后旧诊断失效，未知状态不会显示为在线。
-
-升级前备份整个数据目录与原部署配置，保留旧镜像。先用独立数据目录和端口试运行，确认源连通、API Key、搜索去重和容器重启后的数据保留，再更新正式容器。容器健康检查通过仅代表 Web 服务响应，源站状态仍需实际搜索确认。
-
-在你的 Byte-Muse `docker-compose.yml` 中直接加入 `bm-bt-proxy` 服务：
+镜像支持 `linux/amd64` 和 `linux/arm64`。创建 `compose.yml`：
 
 ```yaml
-version: '3.8'
-
 services:
-  # BT 多源聚合中继（自带 WebUI）
   bm-bt-proxy:
-    image: violin321/bm-bt-proxy:latest
+    image: violin321/bm-bt-proxy:1.10.0
     container_name: bm-bt-proxy
-    restart: always
+    restart: unless-stopped
     ports:
-      - "8000:8000"   # 打开 http://<IP>:8000 进入 WebUI 控制台
+      - "8000:8000"
     volumes:
-      - ./data:/data  # 持久化保存 WebUI 配置的源列表
+      - ./bm-bt-data:/data
     environment:
-      # 也支持首次启动时通过环境变量初始化源（可选）：
-      - BT_SOURCE_1_URL=http://192.168.1.30:6969/api/v1/articles/torrents
-      - BT_SOURCE_1_METHOD=POST
-      - BT_SOURCE_1_HEADERS={"X-API-Key":"***"}
-      - BT_SOURCE_1_FIELD=keyword
-      - BT_SOURCE_1_TIMEOUT=10.0
-
-      - BT_SOURCE_2_URL=http://192.168.1.30:3850/bt/api
-      - BT_SOURCE_2_METHOD=GET
-      - BT_SOURCE_2_FIELD=keyword
-      - BT_SOURCE_2_TIMEOUT=10.0
-
-  # Byte-Muse 服务
-  byte-muse:
-    image: envyafish/byte-muse:latest
-    container_name: byte-muse
-    restart: always
-    ports:
-      - "8044:3750"
-    volumes:
-      - ./data:/data
-    environment:
-      - TZ=Asia/Shanghai
-      - 'PUID=0'
-      - 'PGID=0'
-      # 指向内部代理地址
-      - BT_URL=http://bm-bt-proxy:8000/api/torrents?keyword=
-      - BT_METHOD=GET
-      - LICENSE_CODE=YOUR_LICENSE_CODE
-    depends_on:
-      - bm-bt-proxy
+      TZ: Asia/Shanghai
+      WEB_USERNAME: "${BM_WEB_USERNAME:?请设置管理账号}"
+      WEB_PASSWORD: "${BM_WEB_PASSWORD:?请设置管理密码}"
+      SECRET_KEY: "${BM_SECRET_KEY:?请设置固定随机签名密钥}"
 ```
 
----
+在同目录 `.env` 填写自己的值：
 
-## 🖥️ WebUI 功能一览
+```dotenv
+BM_WEB_USERNAME=your-admin
+BM_WEB_PASSWORD=replace-with-your-password
+BM_SECRET_KEY=replace-with-a-long-random-value
+```
 
-浏览器访问 `http://<IP>:8000`：
-1. **源列表**：开关启用/禁用、编辑 URL、修改 GET/POST 方法、超时与请求头。
-2. **测试搜索**：选择单源或全源，输入测试关键词查看各源响应时间及合并返回的 JSON。
+运行 `docker compose up -d`，打开 `http://服务器地址:8000` 并登录。在“数据源”添加真实源地址，再到“搜索与测试”检查响应。外网使用时通过 HTTPS 反向代理访问。
 
-## DB Online 数据源
+管理登录需同时设置 `WEB_USERNAME`、`WEB_PASSWORD`；缺少任一项时控制台不要求登录。`SECRET_KEY` 应固定保存，避免升级后已有登录会话失效。管理登录和下游聚合接口的 API Key 分别配置。
 
-可单独部署 db_online、PostgreSQL 和 BT 适配器，将影片详情中的磁力／ED2K 接入聚合。部署文件与使用范围见 [部署说明](deploy/db-online/README.md)，实际三源及 Byte-Muse 验收见 [接入报告](docs/DBONLINE-20261107.md)。这项接入不需要更新 BM-BT 主程序。
+`/data` 保存配置、认证会话、请求历史与标签缓存，应持久化并纳入私有备份。新部署可通过 `BT_SOURCE_1_URL`、`BT_SOURCE_1_METHOD`、`BT_SOURCE_1_HEADERS`、`BT_SOURCE_1_FIELD`、`BT_SOURCE_1_TIMEOUT` 等环境变量初始化数据源；已有 `config.json` 优先，日常修改通过控制台完成。
+
+## 连接 Byte-Muse
+
+在“设置 → 连接 Byte-Muse”选择可从 Byte-Muse 容器访问的地址和接入方案，复制生成的配置到 **Byte-Muse 服务的 `environment`**，再重建该服务。两个容器处于同一 Docker 网络时，标准配置为：
+
+```yaml
+BT_URL: "http://bm-bt-proxy:8000/api/torrents"
+BT_METHOD: "get"
+BT_HEADER: "{}"
+BT_JSON_DATA: ""
+```
+
+如果开启“聚合接口保护”，使用页面生成的 `BT_HEADER`，其中包含实际 `X-API-Key`。页面默认遮挡密钥，主动复制时才带入。若 Byte-Muse 已保存过 BT 配置，需在其管理页核对实际生效值。
+
+**LTX 优选**选择 `/api/torrents/ltx`，同时在 Byte-Muse 将默认排序设为 `uc`，保留“仅无码”及既有大小、清晰度等筛选。希望全部候选不合格时停止，使用 Byte-Muse 严格模式。LTX 标记来自上游标签／标题，不验证实际破解模型；完整边界见 [LTX 接入说明](docs/LTX-PREFERRED-20261108.md)。
+
+## 控制台使用
+
+| 页面 | 用途 |
+| --- | --- |
+| 运行概览 | 今天／最近 7 天统计、请求趋势、源响应历史、异常筛选及请求详情 |
+| 数据源 | 添加／编辑／启停源、配置搜索请求头、Jackett 站点和目录登录 |
+| 搜索与测试 | 单源或全源查询，查看去重结果、原始 JSON、上游标签及排序依据 |
+| 设置 | 生成 Byte-Muse 配置、保护聚合接口、编辑搜索结果排序、查看运行版本和构建编号 |
+
+**排序的两个步骤**：先在“从上游分类与标签中添加规则”选择候选项，再回到“当前排序规则”调整方向和顺序并保存。同步目录只更新候选项，不自动改变排序。
+
+目录读取与搜索分开认证。AVDB / 修仙兼容源选择“账号密码登录”后，保存时登录并验证目录读取权限；会话过期后重新登录。Jackett 使用其 API Key；其他协议可用高级请求头。目录可能仅覆盖当前源数据库、站点声明分类或 DB Online 已缓存影片，不能视为全站标签全集。影片风格由同片磁链共享，不等于单条资源的无码、字幕或清晰度属性。
+
+## 接口
+
+| 接口 | 行为 |
+| --- | --- |
+| `GET /api/torrents?keyword=...` / `POST /api/torrents` | 标准聚合，响应 `{ "data": [...] }` |
+| `GET/POST /bt/api` | 标准接口兼容别名 |
+| `GET/POST /api/torrents/ltx` / `GET/POST /bt/api/ltx` | LTX 优选，仅保留严格 `uc=true` 的资源 |
+| `GET /api/version` | 当前服务版本与构建提交，需要控制台认证（如已启用） |
+| `/openapi.json` | FastAPI 接口描述 |
+
+启用接口保护后，搜索请求携带 `X-API-Key`，也兼容 `?token=...`。POST 可使用 `keyword` / `q` / `wd`；完整参数见 OpenAPI。管理接口沿用控制台登录认证。
+
+## 升级与维护
+
+升级前备份整个 `/data` 和部署配置，保留旧镜像。优先使用固定版本或摘要；`latest` 会随 `main` 构建变化。仅凭版本号不能判定镜像完全一致，需同时比较镜像摘要和 `/api/version` 的构建编号。
+
+更新镜像后，检查容器健康、原登录、实际源查询与历史保留。健康检查只说明 Web 服务能响应；上游可用性需实际查询确认。请求历史保留最近 30 天、最多 50,000 条，记录关键词、源响应与数量，不保存请求头或响应正文。
+
+```bash
+docker compose pull bm-bt-proxy
+docker compose up -d --no-deps bm-bt-proxy
+```
+
+本地开发与验证：
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
+DATA_DIR=./local-data WEB_USERNAME=admin WEB_PASSWORD=your-password \
+  .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+后端契约位于 `frontend-verification/*contracts.py`，从仓库根目录使用 `PYTHONPATH=. .venv/bin/python 文件路径` 运行。浏览器验收需先启动隔离预览并使用测试凭据，不指向生产数据目录。
+
+## 专项说明
+
+- [Docker Hub Overview](docs/DOCKERHUB.md)（由 GitHub Actions 同步至镜像页）
+- [项目架构与边界](docs/OVERVIEW.md)
+- [目录登录、设置整理与镜像核对](docs/CLOSEOUT-20261113.md)
+- [Jackett 与源优先级](docs/JACKETT-20261107.md)
+- [目录范围、缓存与权限](docs/RESOURCE-DIRECTORIES-20261107.md)
+- [DB Online 部署](deploy/db-online/README.md) · [影片风格](docs/DBONLINE-GENRES-20261107.md) · [无匹配误报修复](docs/DBONLINE-NOT-FOUND-20261108.md)
+- [LTX 方案、消费端筛选与验证](docs/LTX-PREFERRED-20261108.md)
+
+验收文档记录对应时间与范围，不代表源站持续在线，也不代表已完成实际下载或物理手机验收。

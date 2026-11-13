@@ -75,9 +75,18 @@ def parse_article_categories(value):
         raise ValueError("分类目录响应格式无效")
     labels = []
     for group in groups:
-        if not isinstance(group, dict) or not isinstance(group.get("categories"), list):
+        if not isinstance(group, dict):
             raise ValueError("分类目录响应格式无效")
-        for entry in group["categories"]:
+        # Xiuxian nests categories under sections; AVDB returns flat sections.
+        sections = group.get("sections", [group])
+        if not isinstance(sections, list):
+            raise ValueError("分类目录响应格式无效")
+        entries = []
+        for section in sections:
+            if not isinstance(section, dict) or not isinstance(section.get("categories"), list):
+                raise ValueError("分类目录响应格式无效")
+            entries.extend(section["categories"])
+        for entry in entries:
             if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
                 raise ValueError("分类目录响应格式无效")
             labels.append({"field": "category", "value": entry["name"], "catalog_count": entry.get("count")})
@@ -131,7 +140,7 @@ async def fetch_directory(client, source):
             async with client.stream("GET", url, params=params, headers=headers, timeout=timeout,
                                      follow_redirects=False) as response:
                 if response.status_code in {401, 403}:
-                    return {**base, "status": "unauthorized", "error": "目录权限不足，请配置目录专用请求头；磁链密钥可能没有分类读取权限。"}
+                    return {**base, "status": "unauthorized", "error": "目录权限不足或会话已过期，请在数据源中重新登录目录或更新专用请求头。"}
                 if response.status_code in {404, 405}:
                     return {**base, "status": "unsupported", "error": "此源未提供可读取的分类目录，继续积累搜索标签。"}
                 if response.status_code != 200:

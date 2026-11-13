@@ -792,6 +792,14 @@
   $("revealHeadersBtn").onclick = () => {state.revealHeaders = !state.revealHeaders;setHeaderMode(state.headerMode);};
   function updateCatalogEditor() {
     $("catalogAuthFields").hidden = $("formCatalogMode").value === "disabled";
+    const mode = $("formCatalogAuth").value, clear = $("clearCatalogHeaders").checked;
+    const url = normalizeUrl($("formUrl").value.trim());
+    const compatible = $("formSourceType").value !== "jackett" && url && new URL(url).pathname.replace(/\/$/, "").endsWith("/api/v1/articles/torrents");
+    $("formCatalogAuth").querySelector('[value="account"]').disabled = !compatible;
+    $("catalogAccountFields").hidden = mode !== "account";
+    $("catalogHeaderFields").hidden = mode !== "headers";
+    for (const id of ["formCatalogUsername", "formCatalogPassword", "formCatalogOtp"]) $(id).disabled = clear;
+    $("formCatalogAuth").disabled = clear;
     $("formCatalogHeaders").disabled = $("clearCatalogHeaders").checked;
     $("formCatalogHeaders").classList.toggle("concealed-value", !state.revealCatalogHeaders);
     $("revealCatalogHeadersBtn").disabled = $("clearCatalogHeaders").checked;
@@ -799,10 +807,14 @@
     $("revealCatalogHeadersBtn").setAttribute("aria-pressed", String(state.revealCatalogHeaders));
   }
   $("formCatalogMode").onchange = updateCatalogEditor;
+  $("formCatalogAuth").onchange = updateCatalogEditor;
+  $("formUrl").addEventListener("input", updateCatalogEditor);
+  $("formSourceType").addEventListener("change", updateCatalogEditor);
   $("clearCatalogHeaders").onchange = updateCatalogEditor;
   $("revealCatalogHeadersBtn").onclick = () => {state.revealCatalogHeaders = !state.revealCatalogHeaders;updateCatalogEditor();};
   function readCatalogHeaders() {
     if ($("clearCatalogHeaders").checked) return {};
+    if ($("formCatalogMode").value === "disabled" || $("formCatalogAuth").value !== "headers") return undefined;
     const raw = $("formCatalogHeaders").value.trim();
     if (!raw) return undefined;
     let headers;
@@ -1026,7 +1038,7 @@
           $("sortLabelValue").value = label.value;$("sortLabelSource").value = source.id;$("sortLabelField").value = label.field;$("sortLabelDirection").value = "prefer";
           addLabelRule({type: "label", value: label.value, field: label.field, source_id: source.id, direction: "prefer"});
           $("preferencesForm").scrollIntoView({behavior: "auto", block: "start"});
-          $("sortLabelSource").focus({preventScroll: true});
+          $("savePreferencesBtn").focus({preventScroll: true});
         }, "catalog-tag");
         tag.disabled = state.preferenceSaving;
         const origin = {directory: "源目录", observed: "已发现", both: "目录 + 已发现"}[label.origin] || "已发现";
@@ -1118,6 +1130,8 @@
     state.revealCatalogHeaders = false;
     $("formCatalogMode").value = s?.catalog_mode || "auto";
     $("formCatalogHeaders").value = "";
+    $("formCatalogAuth").value = "keep";
+    $("catalogSessionHint").textContent = s?.has_catalog_headers ? "已保存目录认证；保持当前选项即可继续使用。" : "尚未单独登录目录，当前使用搜索请求头。";
     $("clearCatalogHeaders").checked = false;
     $("catalogHeadersHint").textContent = s?.has_catalog_headers ? "已保存目录认证；留空保留原值，填写则替换。已保存内容不会回显。" : "仅在目录需要登录时填写 JSON 对象；与搜索请求头分开保存，不回显已保存值。";
     updateCatalogEditor();
@@ -1147,6 +1161,9 @@
     $("sourceDialog").showModal();
     $("formName").focus();
   }
+  $("sourceDialog").addEventListener("close", () => {
+    for (const id of ["formCatalogUsername", "formCatalogPassword", "formCatalogOtp", "formCatalogHeaders"]) $(id).value = "";
+  });
   async function detect(force) {
     const rawUrl = $("formUrl").value.trim();
     if (!rawUrl || (!force && $("formName").value.trim())) return;
@@ -1229,6 +1246,12 @@
       catalog_mode: $("formCatalogMode").value,
     };
     if (catalogHeaders !== undefined) data.catalog_headers = catalogHeaders;
+    if ($("formCatalogMode").value !== "disabled" && !$("clearCatalogHeaders").checked && $("formCatalogAuth").value === "account") {
+      if (!$("formCatalogUsername").value.trim() || !$("formCatalogPassword").value) {
+        message("sourceError", "请填写源站账号和密码。", true);return;
+      }
+      data.catalog_login = {username: $("formCatalogUsername").value.trim(), password: $("formCatalogPassword").value, otp_code: $("formCatalogOtp").value.trim()};
+    }
     if ($("clearJackettKey").checked) data.jackett_api_key = "";
     else if ($("formJackettKey").value.trim()) data.jackett_api_key = $("formJackettKey").value.trim();
     const previous = state.settings.sources.find(s => s.id === id);

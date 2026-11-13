@@ -3,7 +3,7 @@ import json, os, subprocess, signal, threading, sys
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
-root=Path.cwd()/'.preview-data'/'labels160-preview'
+root=Path(os.getenv('BM_LABEL_FIXTURE_DIR',str(Path.cwd()/'.preview-data'/'labels160-preview')))
 root.mkdir(parents=True,exist_ok=True)
 data=root/'data';data.mkdir(exist_ok=True)
 config={'sources':[{'id':'alpha','name':'AVDB · 验证样本','url':'http://127.0.0.1:18766/alpha','priority':100},

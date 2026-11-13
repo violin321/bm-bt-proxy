@@ -340,9 +340,34 @@
                   role="status"
                 ></p>
               </form>
-              <section class="settings-section label-catalog-section" aria-labelledby="labelCatalogHeading">
-                <div class="section-heading"><h3 id="labelCatalogHeading">分类与标签目录</h3><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
-                <p class="muted small">分别查看影片风格、源分类和磁链标签。点击一项加入该来源、该字段的排序草稿，保存后生效。</p>
+              <section class="settings-section preference-section" aria-labelledby="orderingHeading">
+                <div class="section-heading"><h3 id="orderingHeading">搜索结果排序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
+                <p class="muted small">选择排序条件，调整优先级，再保存。Byte-Muse 还会按自身设置过滤和排序。</p>
+                <form id="preferencesForm">
+                <h4 class="ordering-subheading">当前排序规则</h4>
+                <p class="muted small">标准聚合先按源优先级去重，再按规则编号依次比较；条件相同按源优先级和原顺序排列。没有标签的资源仍会保留，未选条件不参与排序。LTX 优选方案会先比较资源的 LTX 标记。</p>
+                <fieldset id="preferenceEditor" class="preference-editor">
+                  <legend class="sr-only">编辑返回顺序</legend>
+                  <div id="preferenceRules" class="preference-rules"></div>
+                  <details class="label-rule-builder">
+                    <summary>手动添加规则（高级）</summary>
+                    <p class="hint">也可从下方候选项直接添加。文字按完整标签匹配；Jackett 分类按数字 ID 匹配。影片风格适合多影片结果排序，同片磁链共享风格，具体规格仍以磁链属性为准。最多 24 条规则。</p>
+                    <div class="label-rule-fields">
+                      <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
+                      <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
+                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">磁链标签 · tags</option><option value="labels">标签 · labels</option><option value="category">源分类 · category</option><option value="categories">源分类 · categories</option><option value="genres">影片风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
+                      <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
+                    </div>
+                    <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>
+                    <p id="labelRuleStatus" class="small" role="status"></p>
+                  </details>
+                  <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭所有排序偏好</button></div>
+                </fieldset>
+                <p id="preferencesStatus" class="small" role="status"></p>
+              </form>
+              <section class="label-catalog-section ordering-catalog" aria-labelledby="labelCatalogHeading">
+                <div class="section-heading"><h4 id="labelCatalogHeading">从上游分类与标签中添加规则</h4><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
+                <p class="muted small">这里提供排序候选项。点击后加入上方规则草稿，再保存返回顺序。目录同步只更新候选项，不会自动启用排序。</p>
                 <div class="label-catalog-tools">
                   <label class="field" for="labelCatalogSource">来源<select id="labelCatalogSource"><option value="*">全部数据源</option></select></label>
                   <label class="field" for="labelCatalogKind">内容类型<select id="labelCatalogKind"><option value="*">全部类型</option><option value="genres">影片风格</option><option value="categories">源分类</option><option value="tags">磁链标签</option></select></label>
@@ -352,28 +377,7 @@
                 <div id="labelCatalog" class="label-catalog"></div>
                 <p class="hint label-catalog-note">刷新列表只读取缓存；同步源目录会逐个读取源的目录接口，不会扫描全部资源。目录每源最多 1000 项；搜索发现的标签最多 200 项，90 天未再次发现会清理。累计命中次数包含多次查询的重复结果。</p>
               </section>
-              <form id="preferencesForm" class="settings-section preference-section">
-                <div class="section-heading"><h3>标签与返回顺序</h3><span id="preferencesBadge" class="tag">默认关闭</span></div>
-                <p class="muted small">先按源优先级去重，再按编号依次比较属性和文字标签。条件相同按源优先级及原顺序排列，没有标签的资源仍会保留。上游返回的标签与原始属性仍可在“搜索与测试”查看。Byte-Muse 会按自己的规则再次过滤、排序。</p>
-                <fieldset id="preferenceEditor" class="preference-editor">
-                  <legend class="sr-only">编辑返回顺序</legend>
-                  <div id="preferenceRules" class="preference-rules"></div>
-                  <div class="label-rule-builder">
-                    <h4>添加文字标签规则</h4>
-                    <p class="hint">从目录或已发现标签中选择，也可手动填写。文字按完整标签匹配；Jackett 分类按数字 ID 匹配。影片风格适合多影片结果排序，同片磁链共享风格，具体规格仍以磁链属性为准。最多 24 条规则。</p>
-                    <div class="label-rule-fields">
-                      <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
-                      <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
-                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">磁链标签 · tags</option><option value="labels">标签 · labels</option><option value="category">源分类 · category</option><option value="categories">源分类 · categories</option><option value="genres">影片风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
-                      <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
-                    </div>
-                    <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>
-                    <p id="labelRuleStatus" class="small" role="status"></p>
-                  </div>
-                  <div class="settings-actions"><button id="savePreferencesBtn" class="btn primary" type="submit">保存返回顺序</button><button id="resetPreferencesBtn" class="btn" type="button">关闭所有排序偏好</button></div>
-                </fieldset>
-                <p id="preferencesStatus" class="small" role="status"></p>
-              </form>
+              </section>
               <section class="settings-section version-section" aria-labelledby="versionHeading">
                 <div class="section-heading"><h2 id="versionHeading">版本信息</h2><button id="refreshVersion" type="button" class="btn subtle">重新读取</button></div>
                 <dl class="version-details"><div><dt>当前运行版本</dt><dd id="runningVersion">正在读取…</dd></div><div><dt>构建编号</dt><dd id="buildRevision">—</dd></div></dl>
@@ -493,13 +497,23 @@
             ></label
           >
           <div class="form-divider"></div>
-          <div class="drawer-section-heading"><span class="step-label">03</span><h3>资源标签目录</h3></div>
+          <div class="drawer-section-heading"><span class="step-label">03</span><h3>上游目录与登录</h3></div>
           <label class="field" for="formCatalogMode">目录同步<select id="formCatalogMode"><option value="auto">自动识别目录接口</option><option value="disabled">不读取源目录</option></select><span class="hint">目录与搜索独立。没有目录的源仍会累计搜索发现的标签。</span></label>
           <div id="catalogAuthFields" class="catalog-auth-fields">
+            <p id="catalogSessionHint" class="hint"></p>
+            <label class="field" for="formCatalogAuth">目录登录方式<select id="formCatalogAuth"><option value="keep">保留现有认证 / 继承搜索请求头</option><option value="account">账号密码登录 · AVDB / 修仙</option><option value="headers">专用请求头（高级）</option></select></label>
+            <div id="catalogAccountFields" hidden>
+              <label class="field" for="formCatalogUsername">源站账号<input id="formCatalogUsername" autocomplete="off" maxlength="512" /></label>
+              <label class="field" for="formCatalogPassword">源站密码<input id="formCatalogPassword" type="password" autocomplete="new-password" maxlength="2048" /></label>
+              <label class="field" for="formCatalogOtp">二次验证码（如已开启）<input id="formCatalogOtp" autocomplete="one-time-code" inputmode="numeric" maxlength="64" /></label>
+              <p class="hint">保存时登录源站并校验目录权限，只保存目录会话，不保存账号密码或验证码。会话过期后请重新登录。</p>
+            </div>
+            <div id="catalogHeaderFields" hidden>
             <div class="header-editor-tools"><span class="small muted">目录接口专用认证</span><button id="revealCatalogHeadersBtn" class="btn subtle" type="button" aria-pressed="false">显示值</button></div>
             <label class="field" for="formCatalogHeaders">目录认证请求头<textarea id="formCatalogHeaders" class="concealed-value" rows="4" autocomplete="off" spellcheck="false" placeholder='{"Cookie": "..."}'></textarea><span id="catalogHeadersHint" class="hint">仅在目录需要登录时填写 JSON 对象；与搜索请求头分开保存，不回显已保存值。</span></label>
+            </div>
             <label class="check-line"><input id="clearCatalogHeaders" type="checkbox" />清除已保存的目录认证请求头</label>
-            <p class="hint">目录返回 401 时，请填写该源目录接口需要的登录 Cookie 或 Authorization。搜索可用不表示目录允许匿名访问。</p>
+            <p class="hint">搜索密钥和目录登录权限可能不同。AVDB / 修仙可选择账号密码；Jackett 沿用其 API Key，其他源可填写 Cookie 或 Authorization。</p>
           </div>
           <div id="sourceError" class="notice error" role="alert" hidden></div>
         </div>

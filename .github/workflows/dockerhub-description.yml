@@ -1,0 +1,26 @@
+name: Update Docker Hub Overview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/DOCKERHUB.md
+      - .github/workflows/dockerhub-description.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-overview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish Docker Hub Overview
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: violin321/bm-bt-proxy
+          short-description: "Multi-source BT proxy for Byte-Muse with WebUI, deduplication, diagnostics and result ordering."
+          readme-filepath: ./docs/DOCKERHUB.md
