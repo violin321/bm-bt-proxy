@@ -11,7 +11,7 @@ const checks=[],errors=[];const pass=name=>{checks.push(name);console.log('PASS'
  const catalog=async()=>{const r=await page.request.get(BASE+'/api/resource-labels');assert(r.ok());return r.json();};
  const access=async()=>{await page.getByRole('link',{name:'设置',exact:true}).click();await page.locator('#refreshLabelsBtn:not([disabled])').waitFor();};
  const search=async()=>{await page.getByRole('link',{name:'搜索与测试',exact:true}).click();await page.locator('#testKeyword').fill('label-contract');const pending=page.waitForResponse(r=>r.url().endsWith('/api/test'));await page.locator('#testSearchBtn').click();const r=await (await pending).json();await page.locator('#testSearchBtn:not([disabled])').waitFor();return r;};
- const add=async(value,source='*',field='*',direction='prefer')=>{await page.locator('#sortLabelSource').selectOption(source);await page.locator('#sortLabelField').selectOption(field);await page.locator('#sortLabelDirection').selectOption(direction);await page.locator('#sortLabelValue').fill(value);await page.getByRole('button',{name:'添加到排序队列',exact:true}).click();};
+ const add=async(value,source='*',field='*',direction='prefer')=>{if(!await page.locator('.label-rule-builder').getAttribute('open'))await page.locator('.label-rule-builder').evaluate(n=>n.open=true);await page.locator('#sortLabelSource').selectOption(source);await page.locator('#sortLabelField').selectOption(field);await page.locator('#sortLabelDirection').selectOption(direction);await page.locator('#sortLabelValue').fill(value);await page.getByRole('button',{name:'添加到排序队列',exact:true}).click();};
  try{
   assert.equal((await page.request.get(BASE+'/api/resource-labels')).status(),401);
   await page.goto(BASE+'/login');await page.getByLabel('管理账号').fill('preview');await page.getByLabel('访问密码',{exact:true}).fill('preview');await page.getByRole('button',{name:'进入控制台'}).click();await page.waitForURL(BASE+'/');
@@ -22,7 +22,7 @@ const checks=[],errors=[];const pass=name=>{checks.push(name);console.log('PASS'
   assert(cache.sources.find(s=>s.id==='beta').labels.some(l=>l.value==='字幕'&&l.count>=3));
   assert(!JSON.stringify(cache).includes('fixture-secret'));assert(!JSON.stringify(cache).includes('magnet:'));
   pass('authenticated persistent catalog accumulates pre-dedup upstream tags without credential-bearing values');
-  await access();await page.getByRole('heading',{name:'分类与标签目录',exact:true}).waitFor();
+  await access();await page.getByRole('heading',{name:'从上游分类与标签中添加规则',exact:true}).waitFor();
   await page.locator('#labelCatalogFilter').fill('字幕');assert.equal(await page.locator('.catalog-source').count(),2);
   await page.locator('#labelCatalogSource').selectOption('beta');assert.equal(await page.locator('.catalog-source').count(),1);
   await page.getByRole('button',{name:'将 DB Online · 验证样本 的 tags 标签 字幕 加入排序',exact:true}).click();

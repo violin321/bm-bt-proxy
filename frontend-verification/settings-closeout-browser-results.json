@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-13T03:47:26.360Z",
+  "checks": [
+    "account login validates permissions, supports OTP, preserves old state on failure and returns no credentials",
+    "one sorting section owns candidate selection, draft, advanced rules and a single save action",
+    "advanced headers, explicit clear and credential cleanup work at desktop and mobile widths",
+    "real synthetic search and overview load with zero uncaught browser errors"
+  ],
+  "errors": [],
+  "isolated": true,
+  "syntheticSource": true,
+  "physicalPhone": false
+}

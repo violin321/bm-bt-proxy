@@ -31,6 +31,7 @@ from app.aggregation import merge_results
 from app.resource_metadata import summarize_resources
 from app.label_catalog import LabelCatalog
 from app.upstream_catalog import CatalogSync, catalog_key
+from app.catalog_auth import login_catalog
 from app.version import VERSION, REVISION
 from pydantic import ValidationError
 
@@ -247,6 +248,7 @@ async def get_sources():
 
 def parse_source(data, previous=None):
     data = dict(data)
+    data.pop("catalog_login", None)
     data.pop("has_jackett_api_key", None)
     data.pop("has_catalog_headers", None)
     # Revisions belong to the server, not an editable request body.
@@ -320,6 +322,8 @@ async def update_preferences(body: Dict[str, Any] = Body(...)):
 @app.post("/api/sources", dependencies=[Depends(require_auth)])
 async def add_source(source_data: Dict[str, Any] = Body(...)):
     new_source = parse_source(source_data)
+    if "catalog_login" in source_data:
+        new_source = await login_catalog(new_source, source_data["catalog_login"])
     settings.sources.append(new_source)
     save_settings(settings)
     return public_source(new_source)
@@ -330,6 +334,10 @@ async def update_source(source_id: str, source_data: Dict[str, Any] = Body(...))
     for i, source in enumerate(settings.sources):
         if source.id == source_id:
             updated = parse_source(source_data, source)
+            if "catalog_login" in source_data:
+                updated = await login_catalog(updated, source_data["catalog_login"])
+                if i >= len(settings.sources) or settings.sources[i] is not source:
+                    raise HTTPException(409, "数据源已被其他操作修改，请刷新后重新登录。")
             old_config, new_config = request_config(source), request_config(updated)
             old_config.pop("config_revision", None)
             new_config.pop("config_revision", None)
