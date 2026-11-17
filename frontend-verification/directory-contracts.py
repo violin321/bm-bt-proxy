@@ -28,8 +28,8 @@ def source(**extra):
 
 
 def directory(labels=None, **extra):
-    return {"status": "ready", "coverage": "current_database", "origin": "upstream",
-            "labels": labels if labels is not None else [{"field": "category", "value": "无码破解", "catalog_count": 10}], **extra}
+    return {"status": "ready", "coverage": "cached_movies", "origin": "upstream",
+            "labels": labels if labels is not None else [{"field": "genres", "value": "无码破解", "catalog_count": 10}], **extra}
 
 
 class Readers(unittest.IsolatedAsyncioTestCase):
@@ -93,7 +93,7 @@ class CacheAndOrdering(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.store = LabelCatalog(Path(self.tmp.name) / "labels.sqlite3")
-        self.s = source()
+        self.s = source(url="http://adapter.test/api/torrents")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -102,7 +102,7 @@ class CacheAndOrdering(unittest.TestCase):
         return self.store.overview(sources or [self.s], now=now)["sources"][0]
 
     def test_directory_and_observed_merge_without_double_count_or_losing_custom_tags(self):
-        self.store.record([self.s], [{"success": True, "items": [{"category": "无码破解", "tags": ["LTX"]}]}], at=1000)
+        self.store.record([self.s], [{"success": True, "items": [{"genres": ["无码破解"], "tags": ["LTX"]}]}], at=1000)
         self.store.record_directory(self.s, directory(), [self.s], at=1000)
         view = self.view()
         self.assertEqual(view["kind"], "combined")
@@ -149,8 +149,8 @@ class CacheAndOrdering(unittest.TestCase):
         self.assertEqual(self.view([disabled])["directory"]["status"], "disabled")
         self.assertEqual(self.view([disabled])["labels"], [])
 
-    def test_full_338_category_snapshot_is_not_cut_by_200_observed_limit(self):
-        labels = [{"field": "category", "value": f"分类{i}", "catalog_count": i} for i in range(338)]
+    def test_genre_directory_is_not_cut_by_200_observed_limit(self):
+        labels = [{"field": "genres", "value": f"风格{i}", "catalog_count": i} for i in range(338)]
         self.store.record_directory(self.s, directory(labels=labels), [self.s], at=1000)
         self.assertEqual(self.view()["directory"]["count"], 338)
         self.assertFalse(self.view()["directory"]["limited"])
@@ -186,7 +186,7 @@ class CacheAndOrdering(unittest.TestCase):
 class SerialJobs(unittest.IsolatedAsyncioTestCase):
     async def test_jobs_coalesce_and_are_serial_even_for_multiple_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
-            sources = [source(id=str(i)) for i in range(3)]
+            sources = [source(id=str(i), url="http://adapter.test/api/torrents") for i in range(3)]
             store = LabelCatalog(Path(tmp) / "labels.sqlite3")
             sync = CatalogSync(store, lambda: sources)
             active = maximum = calls = 0

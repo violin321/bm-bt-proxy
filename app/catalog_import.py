@@ -1,4 +1,4 @@
-"""Import a trusted, read-only category snapshot into this instance's cache."""
+"""Import a trusted cached-movie genre snapshot into this instance's cache."""
 import argparse
 import json
 from pathlib import Path
@@ -21,6 +21,8 @@ def main():
         parser.error("snapshot exceeds 2 MiB")
     value = json.loads(args.snapshot.read_text())
     labels, limited = clean_directory(value["labels"])
+    if value.get("coverage") != "cached_movies" or any(row["field"] != "genres" for row in labels):
+        parser.error("source classification imports are no longer supported; only cached movie genres can be imported")
     store = LabelCatalog(Path(DATA_DIR) / "resource-labels.sqlite3")
     if not store.record_directory(source, {"status": "ready", "labels": labels, "limited": limited,
             "coverage": value["coverage"], "origin": "snapshot"}, lambda: load_settings().sources):

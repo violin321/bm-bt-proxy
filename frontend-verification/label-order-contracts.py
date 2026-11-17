@@ -108,7 +108,7 @@ class CatalogContracts(unittest.TestCase):
                  {"title": "same", "tags": ["UHD"]}]
         self.store.record([self.a], [result(self.a, items)], at=1000)
         overview = self.observed(LabelCatalog(self.path))
-        self.assertEqual([(r["field"], r["count"]) for r in overview["labels"]], [("tags", 2), ("category", 1)])
+        self.assertEqual([(r["field"], r["count"]) for r in overview["labels"]], [("tags", 2)])
         self.assertEqual(overview["kind"], "observed")
         self.assertIsNotNone(overview["last_query_at"])
         with closing(sqlite3.connect(self.path)) as conn:

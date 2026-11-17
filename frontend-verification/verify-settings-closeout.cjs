@@ -29,13 +29,16 @@ const checks=[],errors=[];const pass=name=>{checks.push(name);console.log('PASS'
   assert.equal(await page.getByRole('heading',{name:'标签与返回顺序',exact:true}).count(),0);assert.equal(await page.getByRole('heading',{name:'分类与标签目录',exact:true}).count(),0);
   assert(await page.locator('.preference-section #preferencesForm').count());assert(await page.locator('.preference-section #labelCatalog').count());
   assert.equal(await page.getByRole('button',{name:'保存返回顺序',exact:true}).count(),1);
-  await page.getByRole('button',{name:'同步源目录',exact:true}).click();await page.getByRole('button',{name:'同步源目录',exact:true}).waitFor();
-  await page.getByRole('button',{name:'将 AVDB · 演示源 的 category 标签 演示分类 加入排序',exact:true}).click();assert((await page.locator('#preferencesBadge').textContent()).includes('未保存'));
+  assert(await page.getByRole('button',{name:'同步影片风格',exact:true}).isDisabled());
+  const sample=await page.request.post(BASE+'/api/test',{data:{keyword:'sorting-fixture',source_id:'all'}});
+  assert(sample.ok());await page.getByRole('button',{name:'刷新列表',exact:true}).click();await page.locator('#refreshLabelsBtn:not([disabled])').waitFor();
+  assert.equal(await page.locator('#labelCatalogKind option[value="categories"]').count(),0);
+  await page.getByRole('button',{name:'将 AVDB · 演示源 的 tags 标签 字幕 加入排序',exact:true}).click();assert((await page.locator('#preferencesBadge').textContent()).includes('未保存'));
   assert.deepEqual((await(await page.request.get(BASE+'/api/settings')).json()).result_preferences,[]);
   await page.getByRole('button',{name:'保存返回顺序',exact:true}).click();await page.locator('#savePreferencesBtn:not([disabled])').waitFor();
-  assert.deepEqual((await(await page.request.get(BASE+'/api/settings')).json()).result_preferences,[{type:'label',value:'演示分类',field:'category',source_id:'alpha',direction:'prefer'}]);
-  await page.reload();await page.getByLabel('“演示分类”偏好',{exact:true}).waitFor();
-  await page.getByText('手动添加规则（高级）',{exact:true}).click();await page.locator('#sortLabelValue').fill('字幕');await page.getByRole('button',{name:'添加到排序队列',exact:true}).click();await page.getByRole('button',{name:'保存返回顺序',exact:true}).click();await page.locator('#savePreferencesBtn:not([disabled])').waitFor();
+  assert.deepEqual((await(await page.request.get(BASE+'/api/settings')).json()).result_preferences,[{type:'label',value:'字幕',field:'tags',source_id:'alpha',direction:'prefer'}]);
+  await page.reload();await page.getByLabel('“字幕”偏好',{exact:true}).waitFor();
+  await page.getByText('手动添加规则（高级）',{exact:true}).click();await page.locator('#sortLabelValue').fill('UHD');await page.getByRole('button',{name:'添加到排序队列',exact:true}).click();await page.getByRole('button',{name:'保存返回顺序',exact:true}).click();await page.locator('#savePreferencesBtn:not([disabled])').waitFor();
   pass('one sorting section owns candidate selection, draft, advanced rules and a single save action');
   await page.locator('.label-rule-builder').evaluate(n=>n.open=false);
   for(const width of [1440,768,390,360]){

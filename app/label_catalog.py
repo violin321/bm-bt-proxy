@@ -70,6 +70,9 @@ class LabelCatalog:
                         conn.execute(f"DELETE FROM {table} WHERE source_id=? AND key=?",
                                      (row["source_id"], row["key"]))
         cutoff = now - self.retention_days * 86400
+        conn.execute("DELETE FROM labels WHERE field IN ('category','categories','category_ids')")
+        conn.execute("DELETE FROM directories WHERE coverage IN ('current_database','declared_categories')")
+        conn.execute("DELETE FROM directory_attempts WHERE provider IN ('article_categories','jackett_caps')")
         conn.execute("DELETE FROM labels WHERE last_seen < ?", (cutoff,))
         conn.execute("DELETE FROM queries WHERE last_query_at < ?", (cutoff,))
         return keys
@@ -105,6 +108,8 @@ class LabelCatalog:
                             continue
                         values = set()
                         for label in item_labels(item):
+                            if label["field"] not in {"tags", "labels", "genres"}:
+                                continue
                             normalized = normalize_label(label["value"])
                             identity = (label["field"], normalized)
                             values.add(identity)
@@ -142,6 +147,8 @@ class LabelCatalog:
             return row is None or now - row["attempted_at"] >= (86400 if row["status"] == "ready" else 3600)
 
     def record_directory(self, source, result, current_sources, at=None):
+        if catalog_provider(source) != "adapter_genres":
+            return False
         now = time.time() if at is None else at
         key = catalog_key(source)
         try:
@@ -152,10 +159,11 @@ class LabelCatalog:
                 self._prune(conn, current, now)
                 status = result["status"]
                 if status == "ready":
-                    labels, limited = clean_directory(result["labels"])
+                    labels, limited = clean_directory(
+                        [row for row in result["labels"] if row.get("field") == "genres"])
                     coverage = result["coverage"]
                     origin = result.get("origin", "upstream")
-                    if coverage not in {"current_database", "declared_categories", "cached_movies"} or origin not in {"upstream", "snapshot"}:
+                    if coverage != "cached_movies" or origin not in {"upstream", "snapshot"}:
                         raise ValueError("目录范围无效")
                     conn.execute("""INSERT INTO directories VALUES (?,?,?,?,?,?,?)
                         ON CONFLICT(source_id,key) DO UPDATE SET payload=excluded.payload,
@@ -176,6 +184,8 @@ class LabelCatalog:
 
     def _directory(self, conn, source, now):
         key, provider = catalog_key(source), catalog_provider(source)
+        if provider in {"article_categories", "jackett_caps"}:
+            provider = "none"
         cached = conn.execute("SELECT * FROM directories WHERE source_id=? AND key=?", (source.id, key)).fetchone()
         attempt = conn.execute("SELECT * FROM directory_attempts WHERE source_id=? AND key=?", (source.id, key)).fetchone()
         status = ("disabled" if source.catalog_mode == "disabled" else
