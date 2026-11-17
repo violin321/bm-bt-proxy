@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#ffffff" />
     <title>运行概览 · BM-BT-Proxy</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/theme.css" />
-    <link rel="stylesheet" href="/static/dashboard.css" />
-    <script src="/static/console.js" defer></script>
+    <link rel="stylesheet" href="/static/theme.css?v=1.10.1" />
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.10.1" />
+    <script src="/static/console.js?v=1.10.1" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳至主要内容</a>
@@ -351,11 +351,11 @@
                   <div id="preferenceRules" class="preference-rules"></div>
                   <details class="label-rule-builder">
                     <summary>手动添加规则（高级）</summary>
-                    <p class="hint">也可从下方候选项直接添加。文字按完整标签匹配；Jackett 分类按数字 ID 匹配。影片风格适合多影片结果排序，同片磁链共享风格，具体规格仍以磁链属性为准。最多 24 条规则。</p>
+                    <p class="hint">也可从下方候选项直接添加。文字按完整标签匹配。影片风格适合多影片结果排序，同片磁链共享风格，具体规格仍以磁链属性为准。最多 24 条规则。</p>
                     <div class="label-rule-fields">
                       <label class="field" for="sortLabelValue">资源标签<input id="sortLabelValue" list="labelSuggestions" maxlength="80" placeholder="选择或输入标签" autocomplete="off" /><datalist id="labelSuggestions"></datalist></label>
                       <label class="field" for="sortLabelSource">适用来源<select id="sortLabelSource"><option value="*">全部数据源</option></select></label>
-                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">磁链标签 · tags</option><option value="labels">标签 · labels</option><option value="category">源分类 · category</option><option value="categories">源分类 · categories</option><option value="genres">影片风格 · genres</option><option value="category_ids">Jackett 分类 ID · category_ids</option></select></label>
+                      <label class="field" for="sortLabelField">匹配字段<select id="sortLabelField"><option value="*">任意标签字段</option><option value="tags">磁链标签 · tags</option><option value="labels">标签 · labels</option><option value="genres">影片风格 · genres</option></select></label>
                       <label class="field" for="sortLabelDirection">排序方向<select id="sortLabelDirection"><option value="prefer">优先</option><option value="defer">靠后</option></select></label>
                     </div>
                     <button id="addLabelRuleBtn" class="btn" type="button">添加到排序队列</button>
@@ -366,16 +366,16 @@
                 <p id="preferencesStatus" class="small" role="status"></p>
               </form>
               <section class="label-catalog-section ordering-catalog" aria-labelledby="labelCatalogHeading">
-                <div class="section-heading"><h4 id="labelCatalogHeading">从上游分类与标签中添加规则</h4><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步源目录</button></div></div>
-                <p class="muted small">这里提供排序候选项。点击后加入上方规则草稿，再保存返回顺序。目录同步只更新候选项，不会自动启用排序。</p>
+                <div class="section-heading"><h4 id="labelCatalogHeading">从资源标签中添加规则</h4><div class="catalog-actions"><button id="refreshLabelsBtn" type="button" class="btn subtle">刷新列表</button><button id="syncLabelDirectoryBtn" type="button" class="btn">同步影片风格</button></div></div>
+                <p class="muted small">仅收集磁链标签和影片风格。点击后加入上方规则草稿，再保存返回顺序；同步影片风格不会自动启用排序。</p>
                 <div class="label-catalog-tools">
                   <label class="field" for="labelCatalogSource">来源<select id="labelCatalogSource"><option value="*">全部数据源</option></select></label>
-                  <label class="field" for="labelCatalogKind">内容类型<select id="labelCatalogKind"><option value="*">全部类型</option><option value="genres">影片风格</option><option value="categories">源分类</option><option value="tags">磁链标签</option></select></label>
+                  <label class="field" for="labelCatalogKind">内容类型<select id="labelCatalogKind"><option value="*">全部类型</option><option value="genres">影片风格</option><option value="tags">磁链标签</option></select></label>
                   <label class="field" for="labelCatalogFilter">查找标签<input id="labelCatalogFilter" type="search" placeholder="如 字幕、无码破解、UHD" maxlength="80" /></label>
                 </div>
                 <p id="labelCatalogStatus" class="small muted" role="status">正在读取标签缓存…</p>
                 <div id="labelCatalog" class="label-catalog"></div>
-                <p class="hint label-catalog-note">刷新列表只读取缓存；同步源目录会逐个读取源的目录接口，不会扫描全部资源。目录每源最多 1000 项；搜索发现的标签最多 200 项，90 天未再次发现会清理。累计命中次数包含多次查询的重复结果。</p>
+                <p class="hint label-catalog-note">刷新列表只读取缓存；同步影片风格仅读取 DB Online 已缓存影片的风格，不会扫描全部资源。源分类不再收集。搜索发现的标签每源最多 200 项，90 天未再次发现会清理。累计命中次数包含多次查询的重复结果。</p>
               </section>
               </section>
               <section class="settings-section version-section" aria-labelledby="versionHeading">

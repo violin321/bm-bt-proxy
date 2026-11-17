@@ -958,7 +958,9 @@
       if (!data || !Array.isArray(data.sources) || data.sources.some(s => !Array.isArray(s.labels))) throw Error("标签缓存格式无效，请重试。");
       const names = catalog => JSON.stringify((catalog?.sources || []).map(source => [source.id, source.labels.filter(label => label.field === "category_ids").map(label => [label.value, label.display_name])]));
       const captionsChanged = names(state.labelCatalog) !== names(data);
-      state.labelCatalog = data;renderLabelSuggestions();if (captionsChanged) renderPreferences();
+      state.labelCatalog = {...data, sources: data.sources.map(source => ({
+        ...source, labels: source.labels.filter(label => ["tags", "labels", "genres"].includes(label.field)),
+      }))};renderLabelSuggestions();if (captionsChanged) renderPreferences();
       if (data.refreshing) state.catalogPollTimer = setTimeout(loadLabelCatalog, 1800);
       return data;
     } catch (error) {
@@ -1006,9 +1008,11 @@
     $("refreshLabelsBtn").textContent = state.catalogLoading ? "正在读取…" : "刷新列表";
     const refreshing = state.catalogSyncing || state.labelCatalog?.refreshing;
     const selected = state.settings.sources.find(source => source.id === $("labelCatalogSource").value);
-    const unavailable = selected && (!selected.enabled || selected.catalog_mode === "disabled");
+    const available = source => source.enabled && source.directory?.provider === "adapter_genres";
+    const targets = (state.labelCatalog?.sources || []).filter(source => (!selected || source.id === selected.id) && available(source));
+    const unavailable = !targets.length;
     $("syncLabelDirectoryBtn").disabled = !state.loaded || refreshing || unavailable;
-    $("syncLabelDirectoryBtn").textContent = refreshing ? "正在同步目录…" : unavailable ? selected.enabled ? "目录同步已关闭" : "数据源已停用" : "同步源目录";
+    $("syncLabelDirectoryBtn").textContent = refreshing ? "正在同步风格…" : "同步影片风格";
     $("syncLabelDirectoryBtn").setAttribute("aria-busy", String(Boolean(refreshing)));
     const sources = state.labelCatalog?.sources || [], total = sources.reduce((sum, source) => sum + source.labels.length, 0);
     const stale = state.catalogError ? `读取失败：${state.catalogError}${state.labelCatalog ? " 当前显示上次读取的缓存。" : ""}` : state.labelCatalog?.write_error ? "最近一次标签缓存写入失败，搜索仍可使用；当前显示已保存的标签。" : refreshing ? "正在逐个同步源目录，期间仍可使用已缓存的标签。" : state.catalogLoading ? "正在读取标签缓存…" : `${sources.length} 个源 · 目录与已发现标签共 ${total} 项`;
@@ -1019,7 +1023,7 @@
     let visible = 0;
     for (const source of sources) {
       if (scope !== "*" && source.id !== scope) continue;
-      const matching = source.labels.filter(label => (kind === "*" || (kind === "genres" ? label.field === "genres" : kind === "tags" ? ["tags", "labels"].includes(label.field) : ["category", "categories", "category_ids"].includes(label.field))) && (!filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(label.display_name || "").includes(filter) || normalizedLabel(source.name).includes(filter)));
+      const matching = source.labels.filter(label => (kind === "*" || (kind === "genres" ? label.field === "genres" : ["tags", "labels"].includes(label.field))) && (!filter || normalizedLabel(label.value).includes(filter) || normalizedLabel(label.display_name || "").includes(filter) || normalizedLabel(source.name).includes(filter)));
       if ((filter || kind !== "*") && !matching.length) continue;
       visible++;
       const row = el("article", "catalog-source");

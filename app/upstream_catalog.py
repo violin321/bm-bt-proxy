@@ -186,7 +186,7 @@ class CatalogSync:
         try:
             async with httpx.AsyncClient(verify=False) as client:
                 for source in targets:
-                    if source.catalog_mode == "disabled" or catalog_provider(source) == "none":
+                    if catalog_provider(source) != "adapter_genres":
                         continue
                     if not force and not await asyncio.to_thread(self.store.directory_due, source):
                         continue

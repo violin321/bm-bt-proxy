@@ -1,0 +1,48 @@
+{
+  "checked_at_utc": "2026-11-16T11:03:33.436429+00:00",
+  "version": "1.10.1",
+  "revision": "",
+  "image": "bm-bt-proxy:1.10.1-category-cleanup-20261116",
+  "image_id": "sha256:6158c76a33c65568c3c3c92082d1c732eba32d231e3ff4d995f75eb69e115fa6",
+  "source_hash": "90ac5fa423ff01d73bcd7c3d138fa01d531d8db64d214dd29fc653a82fcc87c3",
+  "uncommitted_build": true,
+  "contracts": 95,
+  "enabled_sources": 3,
+  "queries": {
+    "standard": {
+      "success_sources": 3,
+      "results": 17
+    },
+    "ltx": {
+      "success_sources": 3,
+      "results": 5,
+      "ltx_results": 2
+    }
+  },
+  "category_candidates_removed": true,
+  "classification_cache_cleaned": true,
+  "production_config_unchanged": true,
+  "old_login_cookie_valid": true,
+  "config_bytes_unchanged": true,
+  "existing_rules_unchanged": true,
+  "credentials_unchanged": true,
+  "history_before": 2810,
+  "history_after": 2813,
+  "old_history_preserved": true,
+  "preserved_tag_and_genre_entries": 182,
+  "classification_candidates_remaining": 0,
+  "deleted_directory_items_before": 672,
+  "deleted_observed_classifications_before": 13,
+  "sqlite": "ok",
+  "health": "healthy",
+  "ports_mounts_networks_unchanged": true,
+  "other_container_drift": [],
+  "backup": "/root/docker/bm-bt-proxy-releases/category-cleanup-20261116/backup-110258",
+  "rollback": "/root/docker/bm-bt-proxy-releases/category-cleanup-20261116/rollback.py",
+  "versioned_assets": true,
+  "downloads": 0,
+  "subscriptions": 0,
+  "stage_removed": true,
+  "final_checked_at_utc": "2026-11-16T11:06:02.844312+00:00",
+  "backup_and_rollback_retained": true
+}
