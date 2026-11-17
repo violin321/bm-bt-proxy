@@ -21,3 +21,19 @@
 - 控制台与登录页静态资源增加 `v=1.10.1` 参数，避免升级后复用旧脚本。正式 HTTP 页面已确认没有源分类选项；本轮未执行浏览器界面验收。
 
 完整备份位于 OVH `/root/docker/bm-bt-proxy-releases/category-cleanup-20261116/backup-110258`；单服务回滚脚本为同发布目录的 `rollback.py`。回滚恢复原镜像与部署配置，不覆盖在线源配置或请求历史。结构化证据见 `frontend-verification/category-removal-deployment-results.json`。
+
+## 2026-11-17 正式镜像发布验收
+
+v1.10.1 构建提交为 `5bcf7cb7f5e9ae67506cf0d0888512169ccf184a`，提供 amd64 / arm64 镜像。OVH 已从上述本地构建切换为正式镜像，并固定到与 Docker Hub `latest` / `1.10.1` 相同的多架构索引摘要：
+
+```
+sha256:583ae8ccbf6b4df4129ba68eea4d8aa9b4d5debaec885897fd68186eafc70dd8
+```
+
+正式 amd64 镜像的应用文件与已验收本地构建逐文件一致，95 项契约全部通过；隔离候选及正式服务的 3 个启用源真实查询均成功。标准聚合返回 17 条，LTX 方案返回 5 条，其中 2 条有 LTX 标记。分类候选仍为零，182 条原有磁链标签／影片风格条目保留。
+
+原登录 Cookie、凭据、配置文件字节、已有规则、端口、挂载与网络保持；原 3,120 条历史全部保留，验收后为 3,123 条，两份 SQLite 快检通过。正式容器 healthy，其他原有容器 ID 和启动时间保持，隔离容器已清理。未触发下载或订阅。
+
+GitHub README 与 Docker Hub Overview 已同步 1.10.1 部署示例，线上 Overview 内容与仓库逐字一致。完整备份和回滚脚本保留在 OVH `/root/docker/bm-bt-proxy-releases/1.10.1-20261117/`。正式发布证据见 `frontend-verification/release-1.10.1-results.json`，同时附于 v1.10.1 Release。
+
+本轮验证覆盖实际镜像、服务和 HTTP 接口；浏览器脚本已更新，但未重新执行浏览器或物理手机验收。本节和验收 JSON 的追加不涉及应用文件，不触发主镜像重建。
