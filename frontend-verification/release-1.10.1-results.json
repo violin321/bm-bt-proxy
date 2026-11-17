@@ -1,0 +1,77 @@
+{
+  "production": {
+    "checked_at_utc": "2026-11-17T03:02:38.817714+00:00",
+    "version": "1.10.1",
+    "revision": "5bcf7cb7f5e9ae67506cf0d0888512169ccf184a",
+    "image": "violin321/bm-bt-proxy@sha256:583ae8ccbf6b4df4129ba68eea4d8aa9b4d5debaec885897fd68186eafc70dd8",
+    "image_id": "sha256:ea9c294f4f7d723fd83b6783c8f6021ab2530fe167f72d22317499dace72701e",
+    "source_hash": "90ac5fa423ff01d73bcd7c3d138fa01d531d8db64d214dd29fc653a82fcc87c3",
+    "uncommitted_build": false,
+    "contracts": 95,
+    "enabled_sources": 3,
+    "queries": {
+      "standard": {
+        "success_sources": 3,
+        "results": 17
+      },
+      "ltx": {
+        "success_sources": 3,
+        "results": 5,
+        "ltx_results": 2
+      }
+    },
+    "category_candidates_removed": true,
+    "classification_cache_cleaned": true,
+    "production_config_unchanged": true,
+    "platforms": [
+      "amd64",
+      "arm64"
+    ],
+    "registry_manifests": {
+      "1.10.1": "sha256:583ae8ccbf6b4df4129ba68eea4d8aa9b4d5debaec885897fd68186eafc70dd8",
+      "latest": "sha256:583ae8ccbf6b4df4129ba68eea4d8aa9b4d5debaec885897fd68186eafc70dd8"
+    },
+    "reviewed_application_identical": true,
+    "official_image_verified": true,
+    "old_login_cookie_valid": true,
+    "config_bytes_unchanged": true,
+    "existing_rules_unchanged": true,
+    "credentials_unchanged": true,
+    "history_before": 3120,
+    "history_after": 3123,
+    "old_history_preserved": true,
+    "preserved_tag_and_genre_entries": 182,
+    "classification_candidates_remaining": 0,
+    "deleted_directory_items_before": 0,
+    "deleted_observed_classifications_before": 0,
+    "sqlite": "ok",
+    "health": "healthy",
+    "ports_mounts_networks_unchanged": true,
+    "other_container_drift": [],
+    "backup": "/root/docker/bm-bt-proxy-releases/1.10.1-20261117/backup-030203",
+    "rollback": "/root/docker/bm-bt-proxy-releases/1.10.1-20261117/rollback.py",
+    "versioned_assets": true,
+    "downloads": 0,
+    "subscriptions": 0,
+    "final_checked_at_utc": "2026-11-17T03:09:46.612560+00:00",
+    "stage_removed": true,
+    "backup_and_rollback_retained": true,
+    "runtime_revision_verified": true,
+    "browser_verified": false
+  },
+  "dockerhub_overview": {
+    "workflow_run": 44005909660,
+    "status": "success",
+    "matches_repository": true,
+    "sha256": "b224124971db462d266d65ddb746a02877c778c8442ed3b9d2a4cb169ca52a35"
+  },
+  "image_workflow_run": 44006358039,
+  "image_workflow_status": "success",
+  "runtime_validation_platform": "linux/amd64",
+  "published_platforms": [
+    "amd64",
+    "arm64"
+  ],
+  "browser_scripts": "updated; not executed for this release",
+  "physical_phone_verified": false
+}
